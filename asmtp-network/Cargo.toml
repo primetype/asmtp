@@ -1,0 +1,29 @@
+[package]
+name = "asmtp-network"
+version = "0.1.0"
+authors = ["Nicolas Di Prima <nicolas@primetype.co.uk>"]
+edition = "2018"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/primetype/asmtp"
+documentation = "https://docs.rs/asmtp-network"
+homepage = "https://github.com/primetype/asmtp"
+categories = ["network"]
+keywords = ["cryptography", "ASMTP"]
+description = "network library for ASMTP"
+exclude = [
+    ".gitignore",
+]
+
+[dependencies]
+poldercast = { version = "1.1.1" }
+keynesis = { version = "1.2.0" }
+anyhow = { version = "1.0" }
+tokio = { version = "1.1", features = [ "io-util", "net" ] }
+tokio-util = { version = "0.6.3", features = [ "codec" ] }
+bytes = { version = "1.0" }
+hex = { version = "0.4" }
+rand_core = { version = "0.6.1" }
+futures = { version = "0.3.12" }
+tracing = { version = "0.1.22" }
+tracing-futures = { version = "0.2.4" }
