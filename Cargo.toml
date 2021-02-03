@@ -1,4 +1,8 @@
 [workspace]
 members = [
-    "asmtp-network"
+    "asmtp-lib",
+    "asmtp-storage",
+    "asmtp-client",
+    "asmtp-network",
+    "asmtpd",
 ]

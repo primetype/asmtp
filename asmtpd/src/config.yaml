@@ -1,0 +1,83 @@
+secret:
+  # path to the file with the entropy part of the secret key
+  #
+  # you will still be required to enter the password via `env`
+  # or the application will prompt it from you
+  entropy: "/path/to/entropy.txt"
+
+rest:
+  # address and port number to listen to for incoming HTTP queries
+  listen: "127.0.0.1:8080"
+
+network:
+  # the listen address (may be different from the `public_address`)
+  listen_address: "[::1]:9876"
+  # the public address that is going to be gossiped to other nodes
+  # so they can connect to your node too
+  public_address: "[::1]:9876"
+
+  # the maximum number of connections to keep opened at all time
+  max_opened_connections: 128
+
+  # the maximum of messages to keep pending on our internal queues
+  #
+  # too small and you might miss some messages, too high number and
+  # you might just have too much messages all the time
+  message_queue_size: 64
+
+  # maximum size of the cache of known messages
+  #
+  # keep a fingerprint of messages we already visited in the near distant
+  # passed. This allows to prevent re-propagating the same messages over
+  # and over and focus on more original messages
+  known_message_cache_size: 10240
+
+  # periodic wake up call for heart beat
+  heart_beat: { secs: 1, nanos: 0 }
+
+  # initial list of known gossips
+  known_gossips: []
+
+  gossiping:
+    # number of seconds between 2 gossips to a specific node from our size
+    #
+    # too low number and you might end up gossiping the same values all
+    # the times with other nodes
+    #
+    # too high number and you might lose opportunity for new peer discovery
+    minimum_time_elapsed: { secs: 30, nanos: 0 }
+
+    # the size queue of nodes to gossip to
+    #
+    # because we are trying to delay a bit the gossiping pace to prevent
+    # ending up gossiping all the time, we have here the size of the
+    # gossiping interest queue
+    #
+    # too low and we may end up gossiping only with nodes we talk often to
+    queue_size: 128
+
+    # the gossiping history size
+    #
+    # the number of gossiping events we are registering in memory
+    history_size: 10240
+
+# configuration of the persistent storage of the node
+storage:
+  # the path to the persistent file
+  #
+  path: "/path/to/persistent/storage.db"
+
+  # the operating mode of the storage (low-space or high-throughput)
+  mode: low-space
+
+  # print the profile on drop of the config
+  profile_on_drop: false
+
+  # add a compression factor of the persistent storage (with 'zstd')
+  #
+  # default value (nothing) means no compression
+  # otherwise set a compression level between 1 and 22 (values >= 20 are ultra)
+  compression_factor: ~
+
+  # maximum number of passports to keep in the cache
+  passport_cache_size: 256
