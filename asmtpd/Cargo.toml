@@ -19,8 +19,8 @@ exclude = [
 asmtp-lib = { version = "0.1", path = "../asmtp-lib" }
 asmtp-network = { version = "0.1", path = "../asmtp-network" }
 asmtp-storage = { version = "0.1", path = "../asmtp-storage" }
-poldercast = { version = "1.1.1" }
-keynesis = { version = "1.2.0" }
+poldercast = { version = "1.1.2" }
+keynesis = { version = "1.3.0" }
 
 sled = "0.34.6"
 tokio = { version = "1.1", features = [ "full" ] }
@@ -29,7 +29,7 @@ tracing = "0.1.22"
 tracing-futures = "0.2.4"
 tracing-subscriber = "0.2.15"
 futures = "0.3.12"
-lru = "0.6.3"
+lru = "0.6.4"
 indexmap = "1.6.1"
 bytes = { version = "1.0" }
 thiserror = "1.0"
