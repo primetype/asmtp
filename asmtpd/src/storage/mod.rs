@@ -1,6 +1,8 @@
 mod config;
 mod gossips;
 
+use std::collections::BTreeMap;
+
 pub use self::config::{Config, Mode};
 use self::gossips::Gossips;
 use anyhow::{Context as _, Result};
@@ -8,9 +10,10 @@ use asmtp_storage::{Message, Messages, Passport, Passports};
 use bytes::Bytes;
 use keynesis::{
     key::ed25519,
-    passport::block::{BlockSlice, Hash},
+    passport::block::{Block, BlockSlice, Hash},
 };
 use poldercast::{Gossip, Topic};
+use sled::IVec;
 
 #[derive(Clone)]
 pub struct Storage {
@@ -52,6 +55,25 @@ impl Storage {
             messages,
             db: sled_db,
         })
+    }
+
+    pub fn put_passport(&self, passport_blocks: Vec<Block>) -> Result<Hash> {
+        self.passports
+            .put_passport(&passport_blocks)
+            .map(|p| p.id())
+    }
+
+    pub fn get_passport_blocks(&self, id: Hash) -> Result<Vec<Block>> {
+        self.passports
+            .get_blocks(id)
+            .with_context(|| format!("Failed to get passport's block from persistent storage"))
+    }
+
+    pub fn get_find_passport_id(
+        &self,
+        partial_id: impl AsRef<[u8]>,
+    ) -> Result<BTreeMap<IVec, Hash>> {
+        self.passports.search_ids(partial_id)
     }
 
     pub fn get_passport_from_key(&self, key: ed25519::PublicKey) -> Result<Option<Passport>> {

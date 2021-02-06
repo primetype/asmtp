@@ -7,9 +7,10 @@ use anyhow::{Context as _, Error};
 use asmtp_storage::Passport;
 use keynesis::{
     noise::{HandshakeStateError, IK},
-    passport::PassportError,
+    passport::block::{Block, Hash},
 };
 use poldercast::Topic;
+use std::collections::BTreeMap;
 use thiserror::Error;
 use warp::reject::Reject;
 
@@ -25,12 +26,11 @@ pub enum HandleAuthError {
     InternalError(#[from] anyhow::Error),
 }
 impl Reject for HandleAuthError {}
+
 #[derive(Debug, Error)]
 pub enum HandlePostPassportError {
     #[error("Passport is invalid or cannot be reconstructed")]
-    InvalidPassport(#[from] PassportError),
-    #[error("Error while processing passport to the database")]
-    InternalError(#[from] anyhow::Error),
+    InvalidPassport(#[from] anyhow::Error),
 }
 impl Reject for HandlePostPassportError {}
 
@@ -79,7 +79,7 @@ impl State {
     ///
     /// This can be used to check if a given id is allowed to access
     /// certain ID operations
-    fn server_passport(&self) -> Option<Passport> {
+    pub fn server_passport(&self) -> Option<Passport> {
         let r = self
             .db
             .get_passport_from_key(self.secret.as_ref().public_key());
@@ -93,7 +93,7 @@ impl State {
         }
     }
 
-    fn ensure_is_admin_session(&self, root_session: Session) -> Result<(), PrivilegeError> {
+    pub fn ensure_is_admin_session(&self, root_session: Session) -> Result<(), PrivilegeError> {
         let id = root_session.remote_public_identity();
         let authorized = if let Some(passport) = self.server_passport() {
             passport.light_passport().active_master_keys().contains(&id)
@@ -106,6 +106,25 @@ impl State {
         } else {
             Err(PrivilegeError)
         }
+    }
+
+    pub fn post_passport_blocks(
+        &self,
+        blocks: Vec<Block>,
+    ) -> Result<Hash, HandlePostPassportError> {
+        let id = self.db.put_passport(blocks)?;
+        Ok(id)
+    }
+
+    pub fn get_passport_blocks(&self, id: Hash) -> Result<Vec<Block>, anyhow::Error> {
+        self.db.get_passport_blocks(id)
+    }
+
+    pub fn get_find_passport_id(
+        &self,
+        partial_id: impl AsRef<[u8]>,
+    ) -> anyhow::Result<BTreeMap<sled::IVec, Hash>> {
+        self.db.get_find_passport_id(partial_id)
     }
 
     /// force clear all the sessions

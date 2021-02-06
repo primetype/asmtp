@@ -46,10 +46,6 @@ pub async fn handle(err: Rejection) -> Result<impl Reply, Infallible> {
                 code = StatusCode::BAD_REQUEST;
                 message = "BAD_REQUEST";
             }
-            HandlePostPassportError::InternalError(_) => {
-                code = StatusCode::INTERNAL_SERVER_ERROR;
-                message = "INTERNAL_SERVER_ERROR";
-            }
         }
         more = Some(e.to_string());
     } else if let Some(e) = err.find::<GetTopicError>() {
