@@ -73,7 +73,7 @@ impl Secret {
         })
     }
 
-    pub fn as_ref(&self) -> &SecretKey {
+    pub fn secret(&self) -> &SecretKey {
         &self.secret
     }
 }

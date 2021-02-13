@@ -25,7 +25,7 @@ impl<P> PassportBlocks<P>
 where
     P: AsRef<[u8]>,
 {
-    pub fn as_slice<'a>(&'a self) -> PassportBlocksSlice<'a> {
+    pub fn as_slice(&self) -> PassportBlocksSlice<'_> {
         PassportBlocksSlice(self.0.as_ref())
     }
 
@@ -132,5 +132,11 @@ impl<'a> FromIterator<BlockSlice<'a>> for PassportBlocks<Vec<u8>> {
         }
 
         pb
+    }
+}
+
+impl Default for PassportBlocks<Vec<u8>> {
+    fn default() -> Self {
+        Self::new()
     }
 }

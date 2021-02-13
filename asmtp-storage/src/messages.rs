@@ -87,28 +87,25 @@ impl Future for MessagesSubscriber {
     type Output = Option<SubscriptionEvent>;
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let mut subscriber = self.as_mut();
-        loop {
-            let subscriber = Pin::new(&mut subscriber.0);
-            match futures::ready!(subscriber.poll(cx)) {
-                None => return Poll::Ready(None),
-                Some(sled::Event::Remove { key }) => {
-                    return Poll::Ready(
-                        Topic::try_from(key.as_ref())
-                            .ok()
-                            .map(SubscriptionEvent::Unsubscribe),
-                    )
-                }
-                Some(sled::Event::Insert { key, value }) => {
-                    debug_assert!(
-                        value.is_empty(),
-                        "we are expecting all values to be empty here"
-                    );
-                    return Poll::Ready(
-                        Topic::try_from(key.as_ref())
-                            .ok()
-                            .map(SubscriptionEvent::Subscribe),
-                    );
-                }
+
+        let subscriber = Pin::new(&mut subscriber.0);
+        match futures::ready!(subscriber.poll(cx)) {
+            None => Poll::Ready(None),
+            Some(sled::Event::Remove { key }) => Poll::Ready(
+                Topic::try_from(key.as_ref())
+                    .ok()
+                    .map(SubscriptionEvent::Unsubscribe),
+            ),
+            Some(sled::Event::Insert { key, value }) => {
+                debug_assert!(
+                    value.is_empty(),
+                    "we are expecting all values to be empty here"
+                );
+                Poll::Ready(
+                    Topic::try_from(key.as_ref())
+                        .ok()
+                        .map(SubscriptionEvent::Subscribe),
+                )
             }
         }
     }

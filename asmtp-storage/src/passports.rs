@@ -123,7 +123,7 @@ impl Passports {
         let mut blocks = PassportBlocks::new();
         for event in iter {
             let (_, event) = event?;
-            let block = BlockSlice::try_from_slice(&mut event.as_ref())
+            let block = BlockSlice::try_from_slice(event.as_ref())
                 .context("Passport loaded from storage does not contains a valid state")?;
             blocks.push(block);
         }

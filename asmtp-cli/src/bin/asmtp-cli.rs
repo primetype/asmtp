@@ -156,7 +156,7 @@ fn report_error(style: &Style, error: anyhow::Error) {
     }
 
     if chain.len() > 0 {
-        eprintln!("");
+        eprintln!();
     }
 
     for detail in chain {
@@ -200,23 +200,25 @@ fn ask_passport(style: &Style, state: &mut State) -> Result<()> {
 fn export_buddy<P: AsRef<Path>>(style: &Style, state: &mut State, path: P) -> Result<()> {
     let buddies = state.buddies().search(&[])?;
 
-    let (buddy, hash) = if buddies.len() > 1 {
-        let aliases: Vec<_> = buddies.iter().map(|(n, _)| n).collect();
+    let (buddy, hash) = match buddies.len().cmp(&1) {
+        std::cmp::Ordering::Greater => {
+            let aliases: Vec<_> = buddies.iter().map(|(n, _)| n).collect();
 
-        let buddy = Select::with_theme(&style.dialoguer)
-            .with_prompt("Select the passport to export")
-            .items(&aliases)
-            .paged(true)
-            .interact()
-            .context("Failed to query which buddy passport to export")?;
+            let buddy = Select::with_theme(&style.dialoguer)
+                .with_prompt("Select the passport to export")
+                .items(&aliases)
+                .paged(true)
+                .interact()
+                .context("Failed to query which buddy passport to export")?;
 
-        buddies.get_key_value(aliases[buddy]).unwrap()
-    } else if buddies.len() == 1 {
-        let (buddy, hash) = buddies.iter().next().unwrap();
+            buddies.get_key_value(aliases[buddy]).unwrap()
+        }
+        std::cmp::Ordering::Equal => {
+            let (buddy, hash) = buddies.iter().next().unwrap();
 
-        (buddy, hash)
-    } else {
-        bail!("no passport to export")
+            (buddy, hash)
+        }
+        std::cmp::Ordering::Less => bail!("no passport to export"),
     };
 
     let confirmation = Confirm::with_theme(&style.dialoguer)
@@ -391,11 +393,10 @@ async fn open_message(style: &Style, state: &mut State) -> Result<()> {
         .context("Failed to query the buddy to send message to")?;
     let buddy = items[index];
     let buddy_id = *buddies.get(buddy).unwrap();
-    let buddy_passport = state.passports().get(&buddy_id)?.ok_or(anyhow!(
-        "No passport for {} ({})",
-        buddy,
-        buddy_id
-    ))?;
+    let buddy_passport = state
+        .passports()
+        .get(&buddy_id)?
+        .ok_or_else(|| anyhow!("No passport for {} ({})", buddy, buddy_id))?;
 
     if let Some((_, their_key)) = buddy_passport.shared_key() {
         let (_, our_key) = state.passport().unwrap().shared_key().unwrap();
@@ -491,11 +492,10 @@ async fn send_messages(
         .context("Failed to query the buddy to send message to")?;
     let buddy = items[index];
     let buddy_id = *buddies.get(buddy).unwrap();
-    let buddy_passport = state.passports().get(&buddy_id)?.ok_or(anyhow!(
-        "No passport for {} ({})",
-        buddy,
-        buddy_id
-    ))?;
+    let buddy_passport = state
+        .passports()
+        .get(&buddy_id)?
+        .ok_or_else(|| anyhow!("No passport for {} ({})", buddy, buddy_id))?;
 
     if let Some((_, their_key)) = buddy_passport.shared_key() {
         let (_, our_key) = state.passport().unwrap().shared_key().unwrap();
@@ -507,7 +507,7 @@ async fn send_messages(
             .require_save(true)
             .edit(&format!("Message to {} ({})", buddy, buddy_id))
             .context("Failed to collect message")?
-            .ok_or(anyhow!("No message entered"))?;
+            .ok_or_else(|| anyhow!("No message entered"))?;
 
         // now we can encrypt with the master key
         let mut output = Vec::new();
@@ -698,7 +698,7 @@ async fn sync_new_messages_for(
     let time = message
         .last_message_id()?
         .map(|m_id| m_id.time())
-        .unwrap_or(keynesis::passport::block::Time::from(0));
+        .unwrap_or_else(|| keynesis::passport::block::Time::from(0));
     connection
         .send(Message::new_query_topic_messages(topic, time))
         .await?;

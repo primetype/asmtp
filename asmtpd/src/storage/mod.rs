@@ -76,7 +76,7 @@ impl Storage {
     pub fn get_passport_blocks(&self, id: Hash) -> Result<PassportBlocks<Vec<u8>>> {
         self.passports
             .get_blocks(id)
-            .with_context(|| format!("Failed to get passport's block from persistent storage"))
+            .context("Failed to get passport's block from persistent storage")
     }
 
     pub fn get_find_passport_id(

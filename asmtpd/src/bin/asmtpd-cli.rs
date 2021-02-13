@@ -111,7 +111,7 @@ async fn make_gossip(password: Option<String>, config: PathBuf) -> Result<()> {
 
     let gossip = Gossip::new(
         config.network.public_address,
-        secret.as_ref(),
+        secret.secret(),
         Subscriptions::new().as_slice(),
     );
 

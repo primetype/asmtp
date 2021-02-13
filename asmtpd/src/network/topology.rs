@@ -30,7 +30,7 @@ impl Inner {
         }
 
         self.topology
-            .update_profile_subscriptions(self.secret.as_ref());
+            .update_profile_subscriptions(self.secret.secret());
     }
 
     fn accept_gossip(&mut self, gossip: Gossip) {
@@ -47,10 +47,12 @@ impl Inner {
         self.topology.view(from, selection)
     }
 
+    #[allow(dead_code)]
     fn promote(&mut self, peer: &PublicKey) {
         self.topology.promote_peer(peer);
     }
 
+    #[allow(dead_code)]
     fn demote(&mut self, peer: &PublicKey) {
         self.topology.remove_peer(peer)
     }
@@ -58,7 +60,7 @@ impl Inner {
 
 impl Topology {
     pub fn new(address: SocketAddr, secret: Secret) -> Self {
-        let topology = poldercast::Topology::new(address, secret.as_ref());
+        let topology = poldercast::Topology::new(address, secret.secret());
 
         let inner = Inner::new(secret, topology);
 
@@ -89,10 +91,12 @@ impl Topology {
         self.inner.lock().unwrap().gossips_for(recipient)
     }
 
+    #[allow(dead_code)]
     pub fn promote_peer(&self, peer: &PublicKey) {
         self.inner.lock().unwrap().promote(peer)
     }
 
+    #[allow(dead_code)]
     pub fn demote_peer(&self, peer: &PublicKey) {
         self.inner.lock().unwrap().demote(peer)
     }

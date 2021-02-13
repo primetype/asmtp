@@ -299,7 +299,7 @@ async fn accept(
     let (command_sender, command_receiver) = mpsc::channel(8);
 
     let connection = accepting
-        .handshake(secret.as_ref(), |pk| !entries.lock().unwrap().contains(pk))
+        .handshake(secret.secret(), |pk| !entries.lock().unwrap().contains(pk))
         .await?;
 
     let id = *connection.remote_public_identity();

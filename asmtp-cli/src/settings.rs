@@ -51,9 +51,9 @@ impl Settings {
                 anyhow!("Failed to find a project dir with the given path {:?}", dir)
             })?
         } else {
-            ProjectDirs::from("uk.co", "primetype", "asmtp").ok_or(anyhow!(
-                "Failed to find a valid HOME directory from the operating system"
-            ))?
+            ProjectDirs::from("uk.co", "primetype", "asmtp").ok_or_else(|| {
+                anyhow!("Failed to find a valid HOME directory from the operating system")
+            })?
         };
 
         let passport_export = cli.passport_export;

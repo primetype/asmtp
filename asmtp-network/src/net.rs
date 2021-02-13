@@ -363,9 +363,9 @@ impl Stream for ConnectionReader {
                     Err(error).context("Cannot receive message from connection"),
                 )))
             }
-            Poll::Ready(Some(Ok(mut bytes))) => {
+            Poll::Ready(Some(Ok(bytes))) => {
                 let id = *connection.remote_public_identity();
-                let r = MessageSlice::try_from_slice(&mut bytes)
+                let r = MessageSlice::try_from_slice(&bytes)
                     .context("Invalid message from connection")
                     .map(|m| m.to_message());
 

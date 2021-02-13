@@ -9,7 +9,10 @@ use anyhow::{anyhow, bail, Context as _, Result};
 use asmtp_network::{net::Listener, Message};
 use bytes::Bytes;
 use indexmap::IndexSet;
-use keynesis::{hash::Blake2b, key::ed25519};
+use keynesis::{
+    hash::Blake2b,
+    key::{ed25519, Dh as _},
+};
 use lru::LruCache;
 use poldercast::{layer::Selection, Topic};
 use rand::{rngs::OsRng, RngCore as _};
@@ -115,7 +118,7 @@ impl Network {
     pub async fn new(secret: Secret, storage: Storage, config: Config) -> Result<Self> {
         let (command_sender, command_receiver) = mpsc::channel(8);
 
-        let id = secret.as_ref().public_key();
+        let id = secret.public();
 
         let listen_address = config.listen_address;
         let public_address = config.public_address;

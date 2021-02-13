@@ -28,8 +28,6 @@ async fn main() {
     if let Err(error) = main_run().await {
         eprintln!("{:?}", error);
         std::process::exit(1);
-    } else {
-        ()
     }
 }
 

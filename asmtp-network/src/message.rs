@@ -137,7 +137,7 @@ impl Message {
     }
 
     #[inline(always)]
-    pub fn as_slice<'a>(&'a self) -> MessageSlice<'a> {
+    pub fn as_slice(&self) -> MessageSlice<'_> {
         MessageSlice(self.0.as_ref())
     }
 
@@ -145,13 +145,13 @@ impl Message {
         self.as_slice().message_type()
     }
 
-    pub fn gossip_checked<'a>(&'a self) -> Option<GossipSlice<'a>> {
+    pub fn gossip_checked(&self) -> Option<GossipSlice<'_>> {
         self.as_slice()
             .gossip_checked()
             .expect("Expecting to have a valid Gossip message")
     }
 
-    pub fn topic_checked<'a>(&'a self) -> Option<(Topic, &'a [u8])> {
+    pub fn topic_checked(&self) -> Option<(Topic, &[u8])> {
         self.as_slice()
             .topic_checked()
             .expect("Expecting to have a valid topic message")
@@ -366,6 +366,6 @@ impl AsRef<[u8]> for Message {
 
 impl<'a> AsRef<[u8]> for MessageSlice<'a> {
     fn as_ref(&self) -> &[u8] {
-        self.0.as_ref()
+        &self.0
     }
 }
