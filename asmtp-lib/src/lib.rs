@@ -4,15 +4,14 @@ extern crate quickcheck_macros;
 
 mod entropy;
 mod message_id;
-mod passport_file;
+mod passport_export;
+mod passport_importer;
 mod topic;
 
 pub use self::{
     entropy::Entropy,
     message_id::MessageId,
-    passport_file::{
-        export_passport_blocks, export_passport_blocks_to, import_passport_blocks,
-        import_passport_blocks_from,
-    },
+    passport_export::{BlockIter, PassportBlocks, PassportBlocksSlice},
+    passport_importer::PassportImporter,
     topic::mk_topic,
 };

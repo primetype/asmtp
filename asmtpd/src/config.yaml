@@ -5,9 +5,12 @@ secret:
   # or the application will prompt it from you
   entropy: "/path/to/entropy.txt"
 
-rest:
-  # address and port number to listen to for incoming HTTP queries
-  listen: "127.0.0.1:8080"
+# list of users
+#
+# this is the list of keys and passports authorized to perform administrative
+# operations on the node
+users:
+  - "cf71feb4eb176849217727f286a9c87c80b071b23084d0013334d59786605a24"
 
 network:
   # the listen address (may be different from the `public_address`)

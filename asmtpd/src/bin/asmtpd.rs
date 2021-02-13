@@ -1,5 +1,5 @@
 use anyhow::Context as _;
-use asmtpd::{network::Network, rest, secret::Secret, storage::Storage, Config};
+use asmtpd::{network::Network, secret::Secret, storage::Storage, Config};
 use std::path::PathBuf;
 use structopt::StructOpt;
 use tracing::Level;
@@ -51,15 +51,10 @@ async fn main_run() -> anyhow::Result<()> {
     config.secret.password = args.password;
 
     let secret = Secret::new(config.secret).context("Cannot start the secret Key Manager")?;
-    let storage = Storage::new(config.storage).context("Cannot load storage")?;
+    let storage = Storage::new(config.storage, config.users).context("Cannot load storage")?;
     let network = Network::new(secret.clone(), storage.clone(), config.network)
         .await
         .context("Cannot load the network task")?;
-
-    let shutdown_rest =
-        rest::run(config.rest, storage, secret).context("Cannot load the REST API task")?;
-
-    tokio::pin!(shutdown_rest);
 
     println!("ctrl-c to stop the node...");
 
@@ -67,12 +62,8 @@ async fn main_run() -> anyhow::Result<()> {
         _ = tokio::signal::ctrl_c() => {
             tracing::info!("shuting down via CTRL-C instruction")
         }
-        _ = shutdown_rest.notified() => {
-            tracing::info!("shuting down via REST shutdown control API")
-        }
     }
 
-    shutdown_rest.notify_waiters();
     network
         .shutdown()
         .await

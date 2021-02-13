@@ -1,5 +1,5 @@
 use anyhow::{Context as _, Result};
-use asmtp_lib::{import_passport_blocks_from, Entropy};
+use asmtp_lib::Entropy;
 use asmtpd::{secret::Secret, Config};
 use keynesis::{key::ed25519, Seed};
 use poldercast::{Gossip, Subscriptions};
@@ -25,25 +25,6 @@ struct Args {
 enum Command {
     /// print the default configuration to the standard output
     DefaultConfig,
-
-    /// manually import a passport to the server
-    ///
-    /// This is an administrative operation: doing so will make the new passport
-    /// a privileged passport in the ASMTP instance. I.e. authenticated passports
-    /// will be able to subscribe/unsubscribe to topics
-    ///
-    /// however only administrative passport (passport that contains the server's
-    /// public key in them) are administrator operator
-    ImportPassport {
-        /// path of the configuration file of the server
-        #[structopt(long = "config")]
-        config: PathBuf,
-
-        /// path of the public passport file
-        ///
-        #[structopt(long = "passport-blocks")]
-        passport_blocks: PathBuf,
-    },
 
     /// generate a new keypair
     GenerateNewKey {
@@ -85,12 +66,6 @@ async fn main() {
         Command::DefaultConfig => default_config()
             .await
             .context("Cannot generate default configuration"),
-        Command::ImportPassport {
-            config,
-            passport_blocks,
-        } => import_passport_blocks(config, passport_blocks)
-            .await
-            .context("Cannot import the passport"),
         Command::GenerateNewKey { entropy, password } => generate_new_key(entropy, password)
             .await
             .context("Cannot generate new key"),
@@ -108,16 +83,6 @@ async fn main() {
 async fn default_config() -> Result<()> {
     println!("{}", Config::EXAMPLE);
     Ok(())
-}
-
-async fn import_passport_blocks(config: PathBuf, passport_blocks: PathBuf) -> Result<()> {
-    let config = Config::from_file(config)?;
-
-    let passport_blocks = import_passport_blocks_from(passport_blocks).await?;
-
-    let storage = asmtpd::storage::Storage::new(config.storage).context("Cannot load storage")?;
-
-    asmtpd::rest::import_passport(storage, passport_blocks)
 }
 
 async fn make_gossip(password: Option<String>, config: PathBuf) -> Result<()> {

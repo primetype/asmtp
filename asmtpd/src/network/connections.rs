@@ -56,6 +56,10 @@ impl Connections {
         }
     }
 
+    pub fn number_connections(&self) -> usize {
+        self.to.lock().expect("valid lock").len()
+    }
+
     pub async fn receive(&mut self) -> (PublicKey, Message) {
         // we own at least one `message_sender` so there is always
         // a sender available
@@ -119,6 +123,33 @@ impl Connections {
                     return Ok(command_sender);
                 }
             }
+        }
+    }
+
+    pub async fn send_to_peer(&mut self, id: &PublicKey, message: Message) {
+        let entry = match self.to.lock().unwrap().get(id).cloned() {
+            Some(entry) => {
+                if entry.is_closed() {
+                    self.to.lock().unwrap().pop(id);
+                    tracing::warn!(id = %id, "connection was recently closed");
+                    return;
+                } else {
+                    entry
+                }
+            }
+            None => {
+                tracing::warn!(id = %id, "no connection with peer");
+                return;
+            }
+        };
+
+        let r = entry
+            .send(Command::Send(message))
+            .await
+            .map_err(|_| anyhow!("Cannot send message to peer"));
+
+        if let Err(error) = r {
+            tracing::error!(reason = %error, "failed to send message to peer")
         }
     }
 

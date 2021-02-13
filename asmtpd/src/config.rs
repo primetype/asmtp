@@ -1,10 +1,10 @@
-use crate::{network, rest, secret, storage};
+use crate::{network, secret, storage};
 use anyhow::{Context as _, Result};
 use serde::{Deserialize, Serialize};
-use std::path::Path;
+use std::{collections::HashSet, path::Path};
 use structopt::StructOpt;
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, StructOpt, Serialize, Deserialize, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, StructOpt, Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     #[structopt(flatten)]
@@ -13,15 +13,14 @@ pub struct Config {
 
     #[structopt(flatten)]
     #[serde(default)]
-    pub rest: rest::Config,
-
-    #[structopt(flatten)]
-    #[serde(default)]
     pub network: network::Config,
 
     #[structopt(flatten)]
     #[serde(default)]
     pub storage: storage::Config,
+
+    #[structopt(skip)]
+    pub users: HashSet<String>,
 }
 
 impl Config {

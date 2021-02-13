@@ -1,14 +1,24 @@
 use crate::codec::encryption::MAX_FRAME_LENGTH;
-use anyhow::{ensure, Context as _, Result};
+use anyhow::{anyhow, ensure, Context as _, Result};
+use asmtp_lib::PassportBlocksSlice;
 use bytes::{BufMut as _, Bytes, BytesMut};
+use keynesis::passport::block::{Hash, Time};
 use poldercast::{GossipSlice, Topic};
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug, Hash)]
 #[repr(u8)]
 pub enum MessageType {
     Gossip = 1,
     Topic = 2,
+
+    PutPassport = 3,
+    GetPassport = 4,
+
+    RegisterTopic = 5,
+    DeregisterTopic = 6,
+
+    QueryTopicMessages = 7,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
@@ -30,7 +40,13 @@ impl MessageType {
         match t {
             1 => Some(Self::Gossip),
             2 => Some(Self::Topic),
-            0 | 3..=u8::MAX => None,
+            3 => Some(Self::PutPassport),
+            4 => Some(Self::GetPassport),
+            5 => Some(Self::RegisterTopic),
+            6 => Some(Self::DeregisterTopic),
+            7 => Some(Self::QueryTopicMessages),
+
+            0 | 8..=u8::MAX => None,
         }
     }
 }
@@ -51,13 +67,71 @@ impl Message {
     }
 
     /// create a new message from the given topic and content
-    pub fn new_topic(topic: Topic, message: Bytes) -> Self {
-        let mut bytes = BytesMut::with_capacity(MessageType::SIZE + Topic::SIZE + message.len());
-        bytes.reserve(MessageType::SIZE + Topic::SIZE + message.len());
+    pub fn new_topic(topic: Topic, message: impl AsRef<[u8]>) -> Self {
+        let size = MessageType::SIZE + Topic::SIZE + message.as_ref().len();
+        let mut bytes = BytesMut::with_capacity(size);
+        bytes.reserve(size);
 
         bytes.put_u8(MessageType::Topic.to_u8());
         bytes.put_slice(topic.as_ref());
         bytes.put_slice(message.as_ref());
+
+        Self(bytes.freeze())
+    }
+
+    pub fn new_get_passport(id: Hash) -> Self {
+        let size = MessageType::SIZE + Hash::SIZE;
+        let mut bytes = BytesMut::with_capacity(size);
+        bytes.reserve(size);
+
+        bytes.put_u8(MessageType::GetPassport.to_u8());
+        bytes.put_slice(id.as_ref());
+
+        Self(bytes.freeze())
+    }
+
+    pub fn new_put_passport(id: Hash, passport: PassportBlocksSlice) -> Self {
+        let size = MessageType::SIZE + Hash::SIZE + passport.len();
+        let mut bytes = BytesMut::with_capacity(size);
+        bytes.reserve(size);
+
+        bytes.put_u8(MessageType::PutPassport.to_u8());
+        bytes.put_slice(id.as_ref());
+        bytes.put_slice(passport.as_ref());
+
+        Self(bytes.freeze())
+    }
+
+    pub fn new_register_topic(topic: Topic) -> Self {
+        let size = MessageType::SIZE + Topic::SIZE;
+        let mut bytes = BytesMut::with_capacity(size);
+        bytes.reserve(size);
+
+        bytes.put_u8(MessageType::RegisterTopic.to_u8());
+        bytes.put_slice(topic.as_ref());
+
+        Self(bytes.freeze())
+    }
+
+    pub fn new_deregister_topic(topic: Topic) -> Self {
+        let size = MessageType::SIZE + Topic::SIZE;
+        let mut bytes = BytesMut::with_capacity(size);
+        bytes.reserve(size);
+
+        bytes.put_u8(MessageType::DeregisterTopic.to_u8());
+        bytes.put_slice(topic.as_ref());
+
+        Self(bytes.freeze())
+    }
+
+    pub fn new_query_topic_messages(topic: Topic, time: Time) -> Self {
+        let size = MessageType::SIZE + Topic::SIZE + Time::SIZE;
+        let mut bytes = BytesMut::with_capacity(size);
+        bytes.reserve(size);
+
+        bytes.put_u8(MessageType::QueryTopicMessages.to_u8());
+        bytes.put_slice(topic.as_ref());
+        bytes.put_u32(*time);
 
         Self(bytes.freeze())
     }
@@ -83,6 +157,36 @@ impl Message {
             .expect("Expecting to have a valid topic message")
     }
 
+    pub fn get_passport_checked(&self) -> Option<Hash> {
+        self.as_slice()
+            .get_passport()
+            .expect("Expected a valid get passport message")
+    }
+
+    pub fn put_passport_checked(&self) -> Option<(Hash, PassportBlocksSlice<'_>)> {
+        self.as_slice()
+            .put_passport()
+            .expect("Expected a valid put passport message")
+    }
+
+    pub fn register_topic_checked(&self) -> Option<Topic> {
+        self.as_slice()
+            .register_topic()
+            .expect("Expected a valid topic registration message")
+    }
+
+    pub fn deregister_topic_checked(&self) -> Option<Topic> {
+        self.as_slice()
+            .deregister_topic()
+            .expect("Expected a valid topic deregistration message")
+    }
+
+    pub fn query_topic_messages_checked(&self) -> Option<(Topic, Time)> {
+        self.as_slice()
+            .query_topic_messages()
+            .expect("Expected a valid topic message query")
+    }
+
     pub fn to_bytes(&self) -> Bytes {
         self.0.clone()
     }
@@ -101,10 +205,39 @@ impl<'a> MessageSlice<'a> {
 
         match message_type {
             MessageType::Gossip => {
-                message.gossip_checked()?;
+                message
+                    .gossip_checked()?
+                    .ok_or_else(|| anyhow!("Expected a gossip message"))?;
             }
             MessageType::Topic => {
-                message.topic_checked()?;
+                message
+                    .topic_checked()?
+                    .ok_or_else(|| anyhow!("Expected a topic message"))?;
+            }
+            MessageType::GetPassport => {
+                message
+                    .get_passport()?
+                    .ok_or_else(|| anyhow!("Expected a get passport message"))?;
+            }
+            MessageType::PutPassport => {
+                message
+                    .put_passport()?
+                    .ok_or_else(|| anyhow!("Expected a put passport message"))?;
+            }
+            MessageType::RegisterTopic => {
+                message
+                    .register_topic()?
+                    .ok_or_else(|| anyhow!("Expected a topic registration message"))?;
+            }
+            MessageType::DeregisterTopic => {
+                message
+                    .deregister_topic()?
+                    .ok_or_else(|| anyhow!("Expected a topic deregistration message"))?;
+            }
+            MessageType::QueryTopicMessages => {
+                message
+                    .query_topic_messages()?
+                    .ok_or_else(|| anyhow!("Expected a query of topic message"))?;
             }
         }
 
@@ -160,6 +293,65 @@ impl<'a> MessageSlice<'a> {
             let bytes = &self.0[1 + Topic::SIZE..];
 
             Ok(Some((topic, bytes)))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn get_passport(self) -> Result<Option<Hash>> {
+        if self.message_type() == MessageType::GetPassport {
+            let hash = &self.0[1..];
+            Hash::try_from(hash)
+                .context("Not enough bytes for a passport ID")
+                .map(Some)
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn put_passport(self) -> Result<Option<(Hash, PassportBlocksSlice<'a>)>> {
+        if self.message_type() == MessageType::PutPassport {
+            let hash = &self.0[1..1 + Hash::SIZE];
+            let id = Hash::try_from(hash).context("Not enough bytes for a passport ID")?;
+
+            let blocks = PassportBlocksSlice::try_from_slice(&self.0[1 + Hash::SIZE..])?;
+
+            Ok(Some((id, blocks)))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn register_topic(self) -> Result<Option<Topic>> {
+        if self.message_type() == MessageType::RegisterTopic {
+            let topic = &self.0[1..1 + Topic::SIZE];
+            let topic = Topic::try_from(topic).context("Not enough bytes for a Topic")?;
+
+            Ok(Some(topic))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn deregister_topic(self) -> Result<Option<Topic>> {
+        if self.message_type() == MessageType::DeregisterTopic {
+            let topic = &self.0[1..1 + Topic::SIZE];
+            let topic = Topic::try_from(topic).context("Not enough bytes for a Topic")?;
+
+            Ok(Some(topic))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn query_topic_messages(self) -> Result<Option<(Topic, Time)>> {
+        if self.message_type() == MessageType::QueryTopicMessages {
+            let topic = &self.0[1..1 + Topic::SIZE];
+            let topic = Topic::try_from(topic).context("Not enough bytes for a Topic")?;
+
+            let time = u32::from_be_bytes(self.0[1 + Topic::SIZE..].try_into().unwrap()).into();
+
+            Ok(Some((topic, time)))
         } else {
             Ok(None)
         }

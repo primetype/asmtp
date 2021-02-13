@@ -46,6 +46,14 @@ impl Inner {
     fn view_for(&mut self, from: Option<&PublicKey>, selection: Selection) -> Vec<Arc<Profile>> {
         self.topology.view(from, selection)
     }
+
+    fn promote(&mut self, peer: &PublicKey) {
+        self.topology.promote_peer(peer);
+    }
+
+    fn demote(&mut self, peer: &PublicKey) {
+        self.topology.remove_peer(peer)
+    }
 }
 
 impl Topology {
@@ -79,5 +87,13 @@ impl Topology {
 
     pub fn gossips_for(&self, recipient: &PublicKey) -> Vec<Gossip> {
         self.inner.lock().unwrap().gossips_for(recipient)
+    }
+
+    pub fn promote_peer(&self, peer: &PublicKey) {
+        self.inner.lock().unwrap().promote(peer)
+    }
+
+    pub fn demote_peer(&self, peer: &PublicKey) {
+        self.inner.lock().unwrap().demote(peer)
     }
 }

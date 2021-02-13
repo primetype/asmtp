@@ -6,7 +6,7 @@ pub use self::config::Config;
 use self::{connections::Connections, topology::Topology};
 use crate::{secret::Secret, storage::Storage};
 use anyhow::{anyhow, bail, Context as _, Result};
-use asmtp_network::net::Listener;
+use asmtp_network::{net::Listener, Message};
 use bytes::Bytes;
 use indexmap::IndexSet;
 use keynesis::{hash::Blake2b, key::ed25519};
@@ -27,6 +27,8 @@ struct Runner {
     connections: Connections,
     listener: Listener,
     command: mpsc::Receiver<Command>,
+    known_cache: MessageCache,
+    gossipers: GossipCache,
     config: Config,
     id: ed25519::PublicKey,
 }
@@ -147,13 +149,18 @@ impl Network {
             topology,
             storage,
             connections: Connections::new(secret, &config),
+            known_cache: MessageCache::new(&config),
+            gossipers: GossipCache::new(&config),
             listener,
             command: command_receiver,
             config,
             id,
         };
 
-        let handle = tokio::spawn(runner.run());
+        let handle = tokio::spawn(async move {
+            let mut runner = runner;
+            runner.run().await
+        });
 
         Ok(Self {
             command: command_sender,
@@ -203,113 +210,173 @@ impl Runner {
         ),
         level = "info"
     )]
-    async fn run(self) -> Result<()> {
-        let Self {
-            topology,
-            mut storage,
-            mut connections,
-            listener,
-            mut command,
-            config,
-            id: _,
-        } = self;
-
-        let mut gossipers = GossipCache::new(&config);
-        let mut known_cache = MessageCache::new(&config);
-
+    async fn run(&mut self) -> Result<()> {
         // on startup, select the existing profile for registered interest in
         // gossiping with.
-        for profile in topology.view_for(None, Selection::Any) {
-            gossipers.register_interest(profile.id());
+        for profile in self.topology.view_for(None, Selection::Any) {
+            self.gossipers.register_interest(profile.id());
         }
 
         loop {
-            if let Some(id) = gossipers.next_gossip_peer() {
-                if let Some(gossiper) = topology.get(&id) {
-                    let gossips = topology.gossips_for(&id);
+            if let Some(id) = self.gossipers.next_gossip_peer() {
+                if let Some(gossiper) = self.topology.get(&id) {
+                    let gossips = self.topology.gossips_for(&id);
                     tracing::info!(
                         to = %gossiper.id(),
                         num_gossips = gossips.len(),
                         "sending gossips"
                     );
-                    if let Err(error) = connections.send_gossips(gossiper, gossips).await {
+                    if let Err(error) = self.connections.send_gossips(gossiper, gossips).await {
                         tracing::warn!(reason = %error, peer = %id, "Cannot send gossip to peer")
                     }
                 }
             }
 
-            if gossipers.is_empty() {
-                let random = topology.view_for(None, Selection::Any);
+            if self.gossipers.is_empty() {
+                let random = self.topology.view_for(None, Selection::Any);
                 if !random.is_empty() {
                     let index = rand::rngs::OsRng.next_u32() as usize % random.len();
-                    gossipers.register_interest(random[index].id());
+                    self.gossipers.register_interest(random[index].id());
                 }
             }
 
-            if storage.needs_update_known_gossips() {
-                let view = topology.view_for(None, Selection::Any);
+            if self.storage.needs_update_known_gossips() {
+                let view = self.topology.view_for(None, Selection::Any);
                 let gossips = view.iter().map(|p| p.gossip()).cloned().collect();
 
                 // if an error occurs here in the storage we better try to deal with it
                 // so this function will returns and make the network stop
-                storage.update_known_gossips(gossips)?;
+                self.storage.update_known_gossips(gossips)?;
             }
 
             tokio::select! {
-                _ = tokio::time::sleep(config.heart_beat) => {
-                    // TODO:
-                    // this is an opportunity to start displaying some useful information
-                    // such as the number of opened connections or the number of messages
-                    // the network sent or received etc...
-                    tracing::info!("beat");
+                _ = tokio::time::sleep(self.config.heart_beat) => {
+                    self.beat()
                 }
                 // handle receiving commands
-                command = command.recv() => {
-                    match command {
-                        None => bail!("failed to receive anymore commands"),
-                        Some(Command::Shutdown) => {
-                            break;
-                        }
-                        Some(Command::Subscriptions { add, remove }) => {
-                            topology.subscriptions(add, remove);
-                        }
-                    }
+                command = self.command.recv() => {
+                    let stop = self.handle_command(command).await?;
+                    if stop { break; }
                 }
                 // accept new connections from the listener
                 //
                 // new connections handshake will run within another task
                 // and will be queued until completion in the `accepting_tasks`
-                accepting = listener.accept::<_, ed25519::SecretKey>(OsRng) => {
+                accepting = self.listener.accept::<_, ed25519::SecretKey>(OsRng) => {
                     let accepting = accepting.context("failed to accept a new connection")?;
-                    connections.accept(accepting).await;
+                    self.connections.accept(accepting).await;
                 }
 
                 // receiving messages from the connections
-                (peer, message) = connections.receive() => {
-
-                    if let Some(gossip) = message.gossip_checked() {
-                        gossipers.register_interest(peer);
-                        topology.accept_gossip(gossip.to_owned());
-                    } else if let Some((topic, content)) = message.topic_checked() {
-                        if !known_cache.check(&content) {
-                            continue
-                        }
-
-                        tracing::debug!(topic = ?topic, "received original message");
-
-                        // propagate the topic message to other services
-                        if let Err(error) = storage.handle_incoming_message(topic, Bytes::from(content.to_vec())) {
-                            // not forward anything that we find improper here
-                            tracing::warn!(reason = %error, "rejecting the message");
-                            continue;
-                        }
-
-                        let view = topology.view_for(Some(&peer), Selection::Topic { topic });
-
-                        connections.send_all(view, message).await;
+                (peer, message) = self.connections.receive() => {
+                    if let Err(error) = self.handle_message(peer, message).await {
+                        tracing::warn!(reason = %error, peer = %peer, "failed to handle peer's message")
                     }
                 }
             }
+        }
+
+        Ok(())
+    }
+
+    fn beat(&self) {
+        let number_connections = self.connections.number_connections();
+
+        // TODO:
+        // this is an opportunity to start displaying some useful information
+        // such as the number of opened connections or the number of messages
+        // the network sent or received etc...
+        tracing::info!(number_connections, "beat");
+    }
+
+    async fn handle_command(&mut self, command: Option<Command>) -> Result<bool> {
+        match command {
+            None => bail!("failed to receive anymore commands"),
+            Some(Command::Shutdown) => Ok(true),
+            Some(Command::Subscriptions { add, remove }) => {
+                self.topology.subscriptions(add, remove);
+                Ok(false)
+            }
+        }
+    }
+
+    async fn handle_message(&mut self, peer: ed25519::PublicKey, message: Message) -> Result<()> {
+        tracing::debug!(message = ?message.message_type(), peer = %peer, "Handling incoming message");
+
+        // ********************************************************************
+        //
+        // public operations that may happen from any node
+        //
+        // though we might want to perform some checks and evaluate
+        // how peers are behaving so we don't end up with nodes flooding
+        // our network
+        if let Some(gossip) = message.gossip_checked() {
+            self.gossipers.register_interest(peer);
+            self.topology.accept_gossip(gossip.to_owned());
+        } else if let Some((topic, content)) = message.topic_checked() {
+            if !self.known_cache.check(&content) {
+                return Ok(());
+            }
+            tracing::debug!(topic = ?topic, "received original message");
+
+            // propagate the topic message to other services
+            self.storage
+                .handle_incoming_message(topic, Bytes::from(content.to_vec()))?;
+
+            let view = self
+                .topology
+                .view_for(Some(&peer), Selection::Topic { topic });
+
+            self.connections.send_all(view, message).await;
+        } else if let Some((topic, time)) = message.query_topic_messages_checked() {
+            if let Some(messages) = self.storage.messages(topic, time)? {
+                // todo: here we are blocking the current task by
+                // processing all the messages. This is a bit non
+                // productive, instead we should do that in a separate
+                // threads/task : `task::spawn` and forget with a clone
+                for (_, message) in messages {
+                    self.connections
+                        .send_to_peer(&peer, Message::new_topic(topic, message.as_ref()))
+                        .await
+                }
+            }
+        }
+        // ********************************************************************
+        //
+        // the following operations are additions from the poldercast protocol
+        // and are used to exchange passport across the network as requested
+        //
+        else if let Some(id) = message.get_passport_checked() {
+            let blocks = self
+                .storage
+                .handle_get_passport(id)
+                .with_context(|| format!("Failed to find passport {}", id))?;
+            self.connections
+                .send_to_peer(&peer, Message::new_put_passport(id, blocks.as_slice()))
+                .await
+        } else if let Some((id, slice)) = message.put_passport_checked() {
+            // TODO: we need to check that the passport is being *PUT* by a
+            // approved peer. or that this is a request passport from a previously
+            // sent passport to that peer specifically.
+            //
+
+            if let Err(error) = self
+                .storage
+                .handle_put_passport(peer, id, slice.to_blocks())
+            {
+                tracing::warn!(peer = %peer, passport = %id, reason = %error, "cannot accept new passport")
+            }
+        } else if let Some(topic) = message.register_topic_checked() {
+            self.storage.put_topic(peer, topic)?
+        } else if let Some(topic) = message.deregister_topic_checked() {
+            self.storage.remove_topic(peer, topic)?
+        }
+        // ********************************************************************
+        //
+        // None of the commands we received are handled by our node
+        //
+        else {
+            bail!("Unknown message type: {:?}", message.message_type());
         }
 
         Ok(())

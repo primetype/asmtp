@@ -1,19 +1,22 @@
 mod config;
 mod gossips;
 
-use std::collections::BTreeMap;
-
 pub use self::config::{Config, Mode};
 use self::gossips::Gossips;
-use anyhow::{Context as _, Result};
-use asmtp_storage::{Message, Messages, Passport, Passports};
+use anyhow::{ensure, Context as _, Result};
+use asmtp_lib::{PassportBlocks, PassportBlocksSlice};
+use asmtp_storage::{Message, MessageIter, Messages, Passports};
 use bytes::Bytes;
 use keynesis::{
     key::ed25519,
-    passport::block::{Block, BlockSlice, Hash},
+    passport::{
+        block::{BlockSlice, Hash, Time},
+        LightPassport,
+    },
 };
 use poldercast::{Gossip, Topic};
 use sled::IVec;
+use std::collections::{BTreeMap, HashSet};
 
 #[derive(Clone)]
 pub struct Storage {
@@ -21,10 +24,12 @@ pub struct Storage {
     db: sled::Db,
     passports: Passports,
     messages: Messages,
+
+    users: HashSet<ed25519::PublicKey>,
 }
 
 impl Storage {
-    pub fn new(config: Config) -> Result<Self> {
+    pub fn new(config: Config, users_set: HashSet<String>) -> Result<Self> {
         let sled_config = sled::Config::new()
             .path(&config.path)
             .mode(config.mode.into())
@@ -49,7 +54,14 @@ impl Storage {
         let messages = Messages::open(&sled_db)
             .context("Cannot open the message topics persistent backend")?;
 
+        let mut users: HashSet<ed25519::PublicKey> = HashSet::new();
+        for user in users_set {
+            let k = user.parse().context("Invalid user")?;
+            users.insert(k);
+        }
+
         Ok(Self {
+            users,
             gossips,
             passports,
             messages,
@@ -57,13 +69,11 @@ impl Storage {
         })
     }
 
-    pub fn put_passport(&self, passport_blocks: Vec<Block>) -> Result<Hash> {
-        self.passports
-            .put_passport(&passport_blocks)
-            .map(|p| p.id())
+    pub fn put_passport(&self, passport_blocks: PassportBlocksSlice) -> Result<Hash> {
+        self.passports.put_passport(passport_blocks).map(|p| p.id())
     }
 
-    pub fn get_passport_blocks(&self, id: Hash) -> Result<Vec<Block>> {
+    pub fn get_passport_blocks(&self, id: Hash) -> Result<PassportBlocks<Vec<u8>>> {
         self.passports
             .get_blocks(id)
             .with_context(|| format!("Failed to get passport's block from persistent storage"))
@@ -76,11 +86,11 @@ impl Storage {
         self.passports.search_ids(partial_id)
     }
 
-    pub fn get_passport_from_key(&self, key: ed25519::PublicKey) -> Result<Option<Passport>> {
+    pub fn get_passport_from_key(&self, key: ed25519::PublicKey) -> Result<Option<LightPassport>> {
         self.passports.get(&key)
     }
 
-    pub fn get_passport_from_topic(&self, topic: Topic) -> Result<Option<Passport>> {
+    pub fn get_passport_from_topic(&self, topic: Topic) -> Result<Option<LightPassport>> {
         let mut id = [0; Hash::SIZE];
         if topic.as_ref()[..(Topic::SIZE - Hash::SIZE)] != [0; Topic::SIZE - Hash::SIZE] {
             return Ok(None);
@@ -115,6 +125,31 @@ impl Storage {
             // simply ignore the message and relay anyway
             Ok(())
         }
+    }
+
+    pub fn handle_get_passport(&self, id: Hash) -> Result<PassportBlocks<Vec<u8>>> {
+        self.passports.get_blocks(id)
+    }
+
+    pub fn handle_put_passport(
+        &self,
+        peer: ed25519::PublicKey,
+        id: Hash,
+        blocks: PassportBlocks<Vec<u8>>,
+    ) -> Result<()> {
+        ensure!(
+            self.users.contains(&peer),
+            "user needs to be registered in order to allow them to publish passports"
+        );
+
+        tracing::info!(id = %id, peer = %peer, "received new passport blocks");
+        let resulted_id = self.put_passport(blocks.as_slice())?;
+
+        ensure!(
+            resulted_id == id,
+            "the passport does not match the expected given hash"
+        );
+        Ok(())
     }
 
     pub fn subscribe_message(&self, topic: Topic) -> Result<()> {
@@ -169,5 +204,43 @@ impl Storage {
         } else {
             Ok(None)
         }
+    }
+
+    pub fn messages(&self, topic: Topic, since: Time) -> Result<Option<MessageIter>> {
+        let exist = self.messages.contains(&topic)?;
+        let r = if exist {
+            let message = Message::open(&self.db, topic)?;
+            Some(message.range_time(since..))
+        } else {
+            None
+        };
+
+        Ok(r)
+    }
+
+    pub fn put_topic(&self, peer: ed25519::PublicKey, topic: Topic) -> Result<()> {
+        ensure!(
+            self.users.contains(&peer),
+            "user needs to be registered in order to allow them to subscribe to topics"
+        );
+
+        self.messages
+            .insert(topic)
+            .context("Failed to store updated information in the persistent storage")?;
+
+        Ok(())
+    }
+
+    pub fn remove_topic(&self, peer: ed25519::PublicKey, topic: Topic) -> Result<()> {
+        ensure!(
+            self.users.contains(&peer),
+            "user needs to be registered in order to allow them to unsubscribe from topics"
+        );
+
+        self.messages
+            .remove(&topic)
+            .context("Failed to store updated information in the persistent storage")?;
+
+        Ok(())
     }
 }

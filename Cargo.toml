@@ -2,7 +2,7 @@
 members = [
     "asmtp-lib",
     "asmtp-storage",
-    "asmtp-client",
     "asmtp-network",
+    "asmtp-cli",
     "asmtpd",
 ]

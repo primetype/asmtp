@@ -1,137 +1,17 @@
 use anyhow::{bail, ensure, Context as _, Result};
+use asmtp_lib::{PassportBlocks, PassportBlocksSlice, PassportImporter};
 use keynesis::passport::{
-    block::{Block, BlockSlice, Hash, Previous},
+    block::{BlockSlice, Hash},
     LightPassport,
 };
 use sled::IVec;
-use std::{
-    collections::{BTreeMap, HashMap, HashSet, VecDeque},
-    convert::TryFrom,
-    fmt,
-    rc::Rc,
-};
+use std::{collections::BTreeMap, convert::TryFrom, fmt};
 
 #[derive(Clone)]
 pub struct Passports {
     blocks: sled::Tree,
     passport_id: sled::Tree,
     ids: sled::Tree,
-}
-
-pub struct Passport {
-    passport: LightPassport,
-    id: Hash,
-}
-
-/// load passport from unordered blocks
-pub struct PassportImporter<B> {
-    current: LightPassport,
-    pending: HashMap<Hash, Vec<Rc<B>>>,
-    added: HashSet<Hash>,
-}
-
-impl<'a> PassportImporter<BlockSlice<'a>> {
-    pub fn new(block: BlockSlice) -> Result<Self> {
-        let current = LightPassport::new(block)?;
-
-        Ok(Self {
-            current,
-            pending: HashMap::new(),
-            added: HashSet::new(),
-        })
-    }
-
-    pub fn from_blocks(iter: impl IntoIterator<Item = BlockSlice<'a>>) -> Result<LightPassport> {
-        let mut blocks = iter.into_iter();
-
-        let mut importer = if let Some(head) = blocks.next() {
-            Self::new(head)?
-        } else {
-            bail!("invalid")
-        };
-
-        for block in blocks {
-            importer.put(block)?;
-        }
-
-        importer.finalize()
-    }
-
-    pub fn load(&mut self, block: BlockSlice<'a>) -> Result<()> {
-        let missing_parents = if let Previous::Previous(parent) = block.header().previous() {
-            !self.added.contains(&parent)
-        } else {
-            bail!("Cannot have no parent block")
-        };
-
-        if missing_parents {
-            self.put(block)?;
-        } else {
-            let id = block.header().hash();
-            self.current.update(block)?;
-            self.added.insert(id);
-
-            let mut resolved = VecDeque::new();
-            resolved.push_back(id);
-
-            while let Some(id) = resolved.pop_front() {
-                for children in self.take(&id) {
-                    self.current.update(children)?;
-                    self.added.insert(children.header().hash());
-                    resolved.push_back(children.header().hash());
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    pub fn finalize(self) -> Result<LightPassport> {
-        ensure!(
-            self.pending.is_empty(),
-            "Some blocks are still pending to be applied on the passport"
-        );
-        Ok(self.current)
-    }
-
-    fn put(&mut self, block: BlockSlice<'a>) -> Result<()> {
-        let block = Rc::new(block);
-
-        match block.header().previous() {
-            Previous::None => bail!("Cannot add a block without a parent block"),
-            Previous::Previous(parent) => {
-                self.pending
-                    .entry(parent)
-                    .or_default()
-                    .push(Rc::clone(&block));
-                Ok(())
-            }
-        }
-    }
-
-    fn take(&mut self, parent: &Hash) -> Vec<BlockSlice<'a>> {
-        let mut result = Vec::new();
-
-        if let Some(children) = self.pending.remove(parent) {
-            for child in children {
-                if let Ok(event) = Rc::try_unwrap(child) {
-                    result.push(event)
-                }
-            }
-        }
-
-        result
-    }
-}
-
-impl Passport {
-    pub fn light_passport(&self) -> &LightPassport {
-        &self.passport
-    }
-
-    pub fn id(&self) -> Hash {
-        self.id
-    }
 }
 
 impl Passports {
@@ -192,60 +72,68 @@ impl Passports {
         Ok(passports)
     }
 
-    pub fn put_passport(&self, passport_blocks: &Vec<Block>) -> Result<Passport> {
+    pub fn put_passport(&self, passport_blocks: PassportBlocksSlice) -> Result<LightPassport> {
         // check the passport is valid before doing anything
-        let passport = PassportImporter::from_blocks(passport_blocks.iter().map(|b| b.as_slice()))?;
+        let passport = PassportImporter::from_blocks(passport_blocks.iter())?;
+        let id;
 
         // this should always be true if the above succeed
-        let id = passport_blocks[0].header().hash();
 
-        let mut iter = passport_blocks.into_iter();
+        let mut iter = passport_blocks.iter();
 
-        self.put_block_head(iter.next().unwrap().as_slice())?;
+        if let Some(head) = iter.next() {
+            self.put_block_head(head)?;
+            id = head.header().hash();
+            self.ids.insert(id, id.as_ref())?;
+        } else {
+            bail!("Cannot have a passport of empty blocks")
+        }
         for block in iter {
-            self.put_block_tail(&id, block.as_slice())?;
+            self.put_block_tail(&id, block)?;
         }
 
-        Ok(Passport { passport, id })
+        self.blocks.flush()?;
+
+        Ok(passport)
     }
 
-    pub fn create_or_update(&self, block: BlockSlice) -> Result<Passport> {
+    pub fn create_or_update(&self, block: BlockSlice) -> Result<LightPassport> {
         let parent = block.header().hash();
 
         if let Some(mut passport) = self.get(parent)? {
             // update the block
             passport
-                .passport
                 .update(block)
                 .context("Block cannot be applied to the existing passport")?;
 
-            self.put_block_tail(&passport.id, block)?;
+            self.put_block_tail(&passport.id(), block)?;
 
             Ok(passport)
         } else {
             let passport = PassportImporter::new(block)?.finalize()?;
-            let id = block.header().hash();
 
             self.put_block_head(block)?;
 
-            Ok(Passport { passport, id })
+            Ok(passport)
         }
     }
 
-    pub fn get_blocks(&self, id: Hash) -> Result<Vec<Block>> {
+    pub fn get_blocks(&self, id: Hash) -> Result<PassportBlocks<Vec<u8>>> {
         let iter = self.blocks.scan_prefix(&id);
-        let mut blocks = Vec::new();
+        let mut blocks = PassportBlocks::new();
         for event in iter {
             let (_, event) = event?;
             let block = BlockSlice::try_from_slice(&mut event.as_ref())
                 .context("Passport loaded from storage does not contains a valid state")?;
-            blocks.push(block.to_block());
+            blocks.push(block);
         }
+
+        ensure!(!blocks.as_slice().is_empty(), "Passport not found");
 
         Ok(blocks)
     }
 
-    pub fn get(&self, id: impl AsRef<[u8]>) -> Result<Option<Passport>> {
+    pub fn get(&self, id: impl AsRef<[u8]>) -> Result<Option<LightPassport>> {
         let id = self
             .ids
             .get(id)
@@ -254,9 +142,9 @@ impl Passports {
             let id = Hash::try_from(key.as_ref()).context("Invalid Passport ID")?;
             let blocks = self.get_blocks(id)?;
 
-            let passport = PassportImporter::from_blocks(blocks.iter().map(|b| b.as_slice()))?;
+            let passport = PassportImporter::from_blocks(blocks.iter())?;
 
-            Ok(Some(Passport { id, passport }))
+            Ok(Some(passport))
         } else {
             Ok(None)
         }
@@ -267,7 +155,7 @@ impl Passports {
         ID: AsRef<[u8]> + fmt::Debug,
     {
         self.ids
-            .insert(public_id.as_ref(), id.to_string().as_bytes())
+            .insert(public_id.as_ref(), id.as_ref().to_vec())
             .with_context(|| {
                 format!(
                     "Failed to set the public identity ({:?} - {})",
