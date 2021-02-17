@@ -93,14 +93,10 @@ async fn make_gossip(password: Option<String>, config: PathBuf) -> Result<()> {
         password
     } else {
         dialoguer::Password::new()
-            .with_confirmation(
-                "Confirm new password",
-                "Password mismatched, put your game together",
-            )
             .allow_empty_password(false)
-            .with_prompt("Enter new password")
+            .with_prompt("Enter password")
             .interact()
-            .context("Failed to confirm new password")?
+            .context("Failed gather password")?
     };
     config.secret.password = Some(password);
 

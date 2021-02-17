@@ -39,7 +39,8 @@ network:
   heart_beat: { secs: 1, nanos: 0 }
 
   # initial list of known gossips
-  known_gossips: []
+  known_gossips:
+    - "80007353f1e7fb03b2346638b4e2b93f810c84853787970be0844df63cdc9979a01d0221561d561f667d26482dc49b0ef76a32f94aeecb4c01191510ca8ec977bd714545888ad0117fa81a176922927114db64cbc6666d2fa2877207baabe0080489fac7c054335c68fcc90d"
 
   gossiping:
     # number of seconds between 2 gossips to a specific node from our size

@@ -664,20 +664,43 @@ async fn sync_new_messages(
             .with_context(|| format!("Failed to load messages for {topic}", topic = topic))?;
     }
 
+    let pb = ProgressBar::new_spinner().with_style(style.spinner.clone());
+    pb.set_message("waiting for messages...");
+    pb.enable_steady_tick(style.spinner_interval);
+
+    let mut counter: usize = 0;
+
     while let Ok(Some((_peer, message))) =
         timeout(std::time::Duration::from_secs(2), connection.next()).await
     {
         let message = message?;
+        counter += 1;
 
         if let Some((topic, m)) = message.topic_checked() {
-            eprintln!(
+            pb.println(format!(
                 "incoming message for {topic}",
-                topic = style.topic.apply_to(topic)
-            );
+                topic = style.topic.apply_to(topic),
+            ));
 
             let message = asmtp_storage::Message::open(state.db(), topic)?;
             message.insert(m)?;
         }
+    }
+    pb.finish_and_clear();
+
+    if counter > 0 {
+        eprintln!(
+            "{prefix} You have no new messages",
+            prefix = style.dialoguer.success_prefix,
+        );
+    } else {
+        let plural = if counter > 1 { "s" } else { "" };
+        eprintln!(
+            "{prefix} You have {count} new message{plural}",
+            prefix = style.dialoguer.success_prefix,
+            count = counter,
+            plural = plural,
+        );
     }
 
     Ok(())

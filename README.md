@@ -1,25 +1,17 @@
 # Anonymous Secure Mail Transfer Protocol (ASMTP)
 
-ASMTP put together pub/sub peer to peer protocol [`poldercast`], blockchain technology
+**ASMTP** brings together pub/sub peer to peer protocol [`poldercast`], blockchain technology
 from [`keynesis`] and encryption protocol [`noise`] to build a secure and anonymous
 network protocol as an alternative to [SMTP] (Simple Mail Transfer Protocol).
 
-ASMTP was written as a tool to initially securely exchange messages with friends and
-colleagues. Tools that provides End to End encryptions often keep hidden from their
+**ASMTP** was written as a tool to initially securely exchange messages with friends and
+colleagues. Other tools that provides End to End encryptions often keep hidden from their
 users that they are still collecting metadata (such as who talks to whom and what
-time). `Signal` is an interesting messaging tool. However they still requires you
-to have a phone number to register on their platform. This is not something I am happy
-with too. If the telephone company decides to block `Signal` from sending you
-the authentication code you are screwed. They may even intercept that authentication
-code to register in our stead. Scary.
+time).
 
-ASMTP does not relies on any third party. Just like in the spirit of the old [SMTP],
+**ASMTP** does not relies on any third party. Just like in the spirit of the old [SMTP],
 messages are relayed from the mail server of the sender to the mail server
-of the recipient and it may use an intermediate route to do so. (yes, [SMTP]
-used to be decentralized by design until big companies started to offer
-_"free"_ email services). However, unlike [SMTP], the sender and the recipient
-identifier (email address for [SMTP]) is not known. Also unlike [SMTP] it is
-not possible to receive messages from senders that are not "allowed" to.
+of the recipient and it may use an intermediate route to do so.
 
 # Deployment
 
