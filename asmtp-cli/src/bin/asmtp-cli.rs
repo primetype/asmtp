@@ -688,7 +688,7 @@ async fn sync_new_messages(
     }
     pb.finish_and_clear();
 
-    if counter > 0 {
+    if counter == 0 {
         eprintln!(
             "{prefix} You have no new messages",
             prefix = style.dialoguer.success_prefix,
