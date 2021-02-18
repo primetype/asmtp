@@ -9,16 +9,21 @@ colleagues. Other tools that provides End to End encryptions often keep hidden f
 users that they are still collecting metadata (such as who talks to whom and what
 time).
 
-**ASMTP** does not relies on any third party. Just like in the spirit of the old [SMTP],
+**ASMTP** does not rely on any third party. Just like in the spirit of the old [SMTP],
 messages are relayed from the mail server of the sender to the mail server
 of the recipient and it may use an intermediate route to do so.
 
 # Deployment
 
 There are 2 components of the **ASMTP** service. The server `asmtpd` and the client
-(`asmtp-cli` or ~`asmtp-client`~ (soon)). You launch `asmtpd` on a server
-that is reachable for other nodes to contact in order to relay messages to it.
-Then you can contact it for receive/send messages with the client applications.
+(`asmtp-cli` or ~`asmtp-client`~ (soon)).
+
+First the `asmtpd` will work as a node in the **ASMTP** network. It wil relay messages
+and participate in the network's health. It will also make sure to subscribe to
+topics of interests to other nodes.
+
+Then you can use a client application (`asmtp-cli` or `asmtp-client`) to contact
+your `asmtpd` node. You can synchronize new received messages and send new messages.
 
 ## Starting `asmtpd`
 
@@ -46,8 +51,8 @@ asmtpd --config config.yaml
 
 ## Connecting a client to `asmtpd`
 
-With the `asmtp-cli` it is rather simple. The first time you connect you will need to
-generate a new key. Then copy past the public key and add it to you `asmtpd`'s `config.yaml`
+You can use `asmtp-cli` as an **ASMTP** client. The first time you connect you will need to
+generate a new key. Then copy paste the public key and add it to your `asmtpd`'s `config.yaml`
 as a new item in the `users`.
 
 Then start the `asmtp-cli` app with the appropriate remote address and remote public key
@@ -63,23 +68,23 @@ asmtp-cli \
 
 ## poldercast: relaying messages
 
-[`poldercast`] is a pub/sub peer to peer topology builder. Each nodes subscribes to
-a list of **Topic** and publish it to the network. Each messages sent for the given
-topic will be relayed through the network of nodes who subscribed for this topic.
+[`poldercast`] is a pub/sub peer to peer topology builder. Each node subscribes to
+a list of **Topics** and publishes it to the network. Each message sent for the given
+topic will be relayed through the network of nodes who subscribed to this topic.
 
 ## keynesis: passport of identity
 
-[`keynesis`] defines a `Passport`. It is in fact a _blockchain_ owned and control
+[`keynesis`] defines a `Passport`. It is in fact a _blockchain_ owned and controlled
 by the users and publicly shared. The users update their `Passport` with new keys.
 
-Every updates are shared across the poldercast network. It only contains public keys.
-Only the other peers who subscribed to receive notification about the passport
+Every update is shared across the poldercast network. The `Passport` only contains public keys.
+Only the other peers who subscribed to receive notifications about that `Passport`
 will receives the updates.
 
 ## Topic: anonymous message metadata
 
-One of the main issue in secure messaging is that it is possible to access the metadata
-of the message (who sent a message to whom). This can be problematic as it breach
+One of the main issues in secure messaging is that it is possible to access the metadata
+of the message (who sent a message to whom). This can be problematic as it breaches
 the anonymity of the users and can lead to catastrophic situations.
 
 ASMTP provides a way around that.
@@ -95,9 +100,9 @@ smallest of the public key and the salt is the other one.
 
 Messages are encrypted with the [`X`] [`noise`] protocol message. This way the message
 is encrypted and authenticated so only the recipient can decrypt it and the recipient
-is the only one who can authenticate accurately the sender of the message. And the sender
-should match the other key used to derive the `Topic`. Otherwise this is garbage and the
-message can quickly be ignored.
+is the only one who can accurately authenticate the sender of the message. The sender
+should match the other key used to derive the `Topic` to make sure that the sender is
+actually allowed to send such message to this topic.
 
 ## Network
 
@@ -106,20 +111,19 @@ The ASMTP network protocol is rather simple:
 **First**: performs a protocol handshake upon establishing new connections (1 byte of version and
 a few bytes of [`IK`] Noise protocol handshake).
 
-During that step, it is possible to authenticate the peer we are talking to.
+During that step, it is possible to authenticate the peer our node is talking to.
 
-**Then**: then that's it. You have a [`noise`] transport state now and it is used to
-encrypt/decrypt all the messages that goes through the network. After each successfully
-encrypted/decrypted message we perform the noise transport's `rekey` so we have forward
-secrecy on our side too.
-
+**Then**: then that's it. Our node has a [`noise`] transport state now and it is used to
+encrypt/decrypt all the messages that go through the network. After each successfully
+encrypted/decrypted message it performs the noise transport's `rekey` to guarantee forward
+secrecy.
 
 # Disclaimer
 
 ASMTP is a work in progress. It is a tool that is originally written to help me
-send messages with my friends and colleagues. Please hear the following:
+send messages with my friends and colleagues. Please note the following:
 
-> It has not been audited and should be used at your own risk.
+> **ASMTP** has not been audited and should be used at your own risk.
 
 ## License
 
