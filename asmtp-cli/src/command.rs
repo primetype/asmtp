@@ -28,7 +28,14 @@ impl Command {
         m.to_owned()
     }
 
-    pub const ALL: &'static [Self] = &[Self::Sync, Self::Info, Self::Exit, Self::Help];
+    pub const ALL: &'static [Self] = &[
+        Self::Info,
+        Self::Sync,
+        Self::Exit,
+        Self::Help,
+        Self::Message,
+        Self::Open,
+    ];
 }
 
 impl fmt::Display for Command {
