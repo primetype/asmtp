@@ -1,4 +1,7 @@
-use crate::{network::Config, secret::Secret};
+use crate::{
+    network::{Config, Topology},
+    secret::Secret,
+};
 use anyhow::{anyhow, bail, Result};
 use asmtp_network::{
     net::{Accepting, Connection, ConnectionReader, ConnectionWriter},
@@ -29,6 +32,7 @@ pub struct Connections {
     // todo: pub this in a type so it is easier to change
     // behavior with time
     to: Arc<Mutex<LruCache<PublicKey, mpsc::Sender<Command>>>>,
+    topology: Topology,
     secret: Secret,
 
     message_sender: mpsc::Sender<(PublicKey, Message)>,
@@ -44,11 +48,12 @@ struct Runtime {
 }
 
 impl Connections {
-    pub fn new(secret: Secret, config: &Config) -> Self {
+    pub fn new(secret: Secret, topology: Topology, config: &Config) -> Self {
         let (message_sender, message_receiver) = mpsc::channel(config.message_queue_size);
 
         Self {
             to: Arc::new(Mutex::new(LruCache::new(config.max_opened_connections))),
+            topology,
             secret,
 
             message_sender,
@@ -104,8 +109,10 @@ impl Connections {
 
                     {
                         let command_sender = command_sender.clone();
+                        let topology = self.topology.clone();
                         let _ = tokio::spawn(async move {
                             if let Err(error) = connect(
+                                topology,
                                 message_sender,
                                 command_sender.clone(),
                                 command_receiver,
@@ -268,6 +275,7 @@ impl Runtime {
 }
 
 async fn connect(
+    topology: Topology,
     message_sender: mpsc::Sender<(PublicKey, Message)>,
     command_sender: mpsc::Sender<Command>,
     command_receiver: mpsc::Receiver<Command>,
@@ -278,7 +286,13 @@ async fn connect(
     let id = node.id();
     let address = node.address();
 
-    let connection = Connection::connect_to(OsRng, &secret, address, id).await?;
+    let connection = match Connection::connect_to(OsRng, &secret, address, id).await {
+        Err(error) => {
+            topology.demote_peer(&id);
+            bail!(error)
+        }
+        Ok(connection) => connection,
+    };
 
     entries.lock().unwrap().put(id, command_sender);
     let runtime = Runtime::new(connection, command_receiver, message_sender);

@@ -52,7 +52,6 @@ impl Inner {
         self.topology.promote_peer(peer);
     }
 
-    #[allow(dead_code)]
     fn demote(&mut self, peer: &PublicKey) {
         self.topology.remove_peer(peer)
     }
@@ -96,7 +95,6 @@ impl Topology {
         self.inner.lock().unwrap().promote(peer)
     }
 
-    #[allow(dead_code)]
     pub fn demote_peer(&self, peer: &PublicKey) {
         self.inner.lock().unwrap().demote(peer)
     }

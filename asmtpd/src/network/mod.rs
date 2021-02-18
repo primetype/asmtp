@@ -149,9 +149,9 @@ impl Network {
         }
 
         let runner = Runner {
-            topology,
+            topology: topology.clone(),
             storage,
-            connections: Connections::new(secret, &config),
+            connections: Connections::new(secret, topology, &config),
             known_cache: MessageCache::new(&config),
             gossipers: GossipCache::new(&config),
             listener,
