@@ -17,14 +17,12 @@ def read_version(manifest_path, ref=None):
     )
     d = json.load(p.stdout)
     version = d['version']
-    """
     if ref is not None and ref != 'refs/tags/v' + version:
         print(
             '::error file={path}::version {0} does not match release tag {1}'
             .format(version, ref, path=manifest_path)
         )
         sys.exit(1)
-    """
     return version
 
 
@@ -51,7 +49,7 @@ else:
 version = read_version('asmtpd/Cargo.toml', ref)
 release_flags = ''
 if release_type == 'tagged':
-    read_version('asmtpd/Cargo.toml', ref)
+    read_version('asmtp-cli/Cargo.toml', ref)
     tag = 'v' + version
 elif release_type == 'nightly':
     version = re.sub(
