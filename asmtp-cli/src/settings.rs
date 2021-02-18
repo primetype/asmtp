@@ -8,16 +8,18 @@ use structopt::StructOpt;
 struct CommandLine {
     /// path directory to the ASMTP local directory
     ///
-    /// default is to leave it unset to use the system's project directory
+    /// default is to leave it unset to use the system's project directory:
+    ///
+    /// * MacOS: ~/Library/Application\ Support/uk.co.primetype.asmtp
     #[structopt(long)]
     pub dir: Option<PathBuf>,
 
     /// the ASMTP server to contact to sync passports and send messages
-    #[structopt(long = "remote-address")]
+    #[structopt(long = "remote-address", env = "ASMTP_CLI_REMOTE_ADDRESS")]
     pub remote_address: SocketAddr,
 
     /// remote's public key
-    #[structopt(long = "remote-id")]
+    #[structopt(long = "remote-id", env = "ASMTP_CLI_REMOTE_ID")]
     pub remote_id: PublicKey,
 
     /// instead of entering the prompt, export the local passport
