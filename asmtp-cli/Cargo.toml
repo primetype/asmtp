@@ -14,7 +14,7 @@ structopt = "0.3.21"
 directories = "3.0.1"
 sled = "0.34.6"
 tokio = { version = "1.2", features = ["full"]}
-futures = "0.3.12"
+futures = "0.3.13"
 dialoguer = "0.7.1"
 indicatif = "0.15"
 console = "0.13"
