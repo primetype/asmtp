@@ -60,7 +60,7 @@ dependencies = [
  "asmtp-network",
  "asmtp-storage",
  "chrono",
- "console 0.13.0",
+ "console 0.14.0",
  "cryptoxide",
  "dialoguer",
  "directories",
