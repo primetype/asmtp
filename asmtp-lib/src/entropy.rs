@@ -1,3 +1,4 @@
+use keynesis::memsec::Scrubbed as _;
 use rand_core::{CryptoRng, RngCore};
 use std::{
     convert::TryFrom,
@@ -14,7 +15,7 @@ use std::{
 /// this defines a standard to use to provide a stronger/safer
 ///
 /// [`Seed`]: keynesis::Seed
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Entropy([u8; Self::SIZE]);
 
 impl Entropy {
@@ -29,6 +30,12 @@ impl Entropy {
         rng.fill_bytes(&mut entropy.0);
 
         entropy
+    }
+}
+
+impl Drop for Entropy {
+    fn drop(&mut self) {
+        self.0.scrub()
     }
 }
 
