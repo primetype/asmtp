@@ -30,7 +30,7 @@ tracing-futures = "0.2.4"
 tracing-subscriber = "0.2.16"
 futures = "0.3.13"
 lru = "0.6.5"
-indexmap = "1.6.1"
+indexmap = "1.6.2"
 bytes = { version = "1.0" }
 thiserror = "1.0"
 anyhow = "1.0"
