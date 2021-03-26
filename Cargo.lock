@@ -604,9 +604,9 @@ dependencies = [
 
 [[package]]
 name = "keynesis"
-version = "1.3.4"
+version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d569c0ba88e938def1e81a1e2d1f882b810c8145955e18c2424f138535f18a22"
+checksum = "c5bf8dc22157c7a4d75f1df13a1b75ada82431141423e3d419ac89f2c1fbb298"
 dependencies = [
  "cryptoxide",
  "hex",
