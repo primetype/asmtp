@@ -94,15 +94,15 @@ impl From<[u8; Self::SIZE]> for MessageId {
     }
 }
 
-impl Into<[u8; Self::SIZE]> for MessageId {
-    fn into(self) -> [u8; Self::SIZE] {
-        self.0
+impl From<MessageId> for [u8; MessageId::SIZE] {
+    fn from(message_id: MessageId) -> Self {
+        message_id.0
     }
 }
 
-impl Into<String> for MessageId {
-    fn into(self) -> String {
-        self.to_string()
+impl From<MessageId> for String {
+    fn from(message_id: MessageId) -> Self {
+        message_id.to_string()
     }
 }
 

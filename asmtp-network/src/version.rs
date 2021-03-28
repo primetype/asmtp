@@ -83,9 +83,9 @@ impl fmt::Display for Version {
     }
 }
 
-impl Into<String> for Version {
-    fn into(self) -> String {
-        self.to_string()
+impl From<Version> for String {
+    fn from(version: Version) -> Self {
+        version.to_string()
     }
 }
 

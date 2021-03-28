@@ -13,6 +13,11 @@ impl PassportBlocks<Vec<u8>> {
         Self(Vec::new())
     }
 
+    pub fn try_from(bytes: Vec<u8>) -> Result<Self> {
+        let _ = PassportBlocksSlice::try_from_slice(bytes.as_slice())?;
+        Ok(Self(bytes))
+    }
+
     pub fn push(&mut self, block: BlockSlice) {
         let size = block.as_ref().len() as u32;
 
@@ -108,6 +113,14 @@ impl<'a> Iterator for BlockIter<'a> {
         self.move_next()
             .expect("State should be valid")
             .map(BlockSlice::from_slice_unchecked)
+    }
+}
+
+impl<'a> IntoIterator for PassportBlocksSlice<'a> {
+    type IntoIter = BlockIter<'a>;
+    type Item = BlockSlice<'a>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 

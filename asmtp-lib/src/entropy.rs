@@ -1,5 +1,6 @@
 use keynesis::memsec::Scrubbed as _;
 use rand_core::{CryptoRng, RngCore};
+use serde::{Deserialize, Serialize};
 use std::{
     convert::TryFrom,
     fmt::{self, Formatter},
@@ -15,7 +16,8 @@ use std::{
 /// this defines a standard to use to provide a stronger/safer
 ///
 /// [`Seed`]: keynesis::Seed
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(into = "String", try_from = "String")]
 pub struct Entropy([u8; Self::SIZE]);
 
 impl Entropy {
@@ -56,6 +58,12 @@ impl fmt::Debug for Entropy {
         f.debug_tuple("Entropy")
             .field(&hex::encode(&self.0))
             .finish()
+    }
+}
+
+impl From<Entropy> for String {
+    fn from(entropy: Entropy) -> Self {
+        entropy.to_string()
     }
 }
 
