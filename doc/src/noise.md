@@ -287,5 +287,5 @@ sequenceDiagram
 More info on [`Noise's explorer`](https://noiseexplorer.com/patterns/IK/)
 
 [Noise Protocol]: https://noiseprotocol.org
-[poldercast]: ../poldercast/00_introduction.md
-[poldercast's gossips]: ../poldercast/00_introduction.md#gossips
+[poldercast]: ./poldercast.md
+[poldercast's gossips]: ./poldercast.md#gossips

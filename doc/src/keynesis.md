@@ -138,4 +138,4 @@ for key in passport.keys() {
 }
 ```
 
-[`Npsk0`]: ../noise/00_introduction.md#pattern-npsk0
+[`Npsk0`]: ./noise.md#pattern-npsk0
