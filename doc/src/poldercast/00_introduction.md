@@ -19,7 +19,7 @@ In our implementation, the identification of the node necessitate two
 types of information:
 
 * the ip address (ipv4 or ipv6) with the port number;
-* the ed25519 public key of the node
+* the [ed25519 public key] of the node
 
 The Gossip also embeds a timestamp as well as a signature generated
 with the node's private key. This allows us to know the data is the
@@ -51,3 +51,5 @@ our nodes and the other nodes of the network).
 
 Finally there is the `cyclon` layer that is responsible to randomly
 sample nodes on the network.
+
+[ed25519 public key]: ../keynesis/00_introduction.html#keys

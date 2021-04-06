@@ -125,7 +125,7 @@ _SharedKey_. It is a key that is encrypted for every other passport's
 key. Every time a _SharedKey_ is register it deprecates the use of the
 previously declared _SharedKey_s.
 
-The `SharedKey` are encrypted using the `Npsk0` pattern of the noise protocol.
+The `SharedKey` are encrypted using the [`Npsk0`] pattern of the noise protocol.
 This allows to encrypt the data in such a way that only the recipient of
 the key can retrieve the `SharedKey` if they also know the _pre shared key_.
 
@@ -139,3 +139,5 @@ for key in passport.keys() {
     let encrypted = noise::N::send(ephemeral, psk, key, shared_secret_key);
 }
 ```
+
+[`Npsk0`]: ../noise/00_introduction.md#pattern-npsk0
