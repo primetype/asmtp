@@ -18,7 +18,7 @@ jobs:
           mdbook-version: 'latest'
 
       - name: Install MermaidJS for mdBook
-        run: cargo install mdbook-mermaid
+        run: cargo install mdbook-mermaid mdbook-linkcheck
 
       - name: Build
         run: mdbook build doc

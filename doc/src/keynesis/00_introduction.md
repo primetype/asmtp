@@ -40,9 +40,7 @@ For example: **Alice** generates a key pair, **Bob** generates a key pair.
 a shared secret. **Bob** will combine his `private key` with **Alice**'s
 `public key` to generate the same shared secret.
 
-```
-Dh(AlicePriv, BobPub) == Dh(BobPriv, AlicePub)
-```
+> \\( Dh(Priv^{Alice}, Pub^{Bob}) = Dh(Priv^{Bob}, Pub^{Alice}) \\)
 
 ```mermaid
 flowchart LR

@@ -9,4 +9,7 @@ title = "ASMTP"
 command = "mdbook-mermaid"
 [output]
 [output.html]
+mathjax-support = true
 additional-js =["mermaid.min.js", "mermaid-init.js"]
+
+[output.linkcheck]  # enable the "mdbook-linkcheck" rendere
