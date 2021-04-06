@@ -47,6 +47,9 @@
         
 
         
+        <!-- MathJax -->
+        <script async type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
     </head>
     <body>
         <!-- Provide site root to javascript -->
@@ -207,8 +210,9 @@ each other's public key.</p>
 <strong>Alice</strong> will combine her <code>private key</code> with <strong>Bob</strong>'s <code>public key</code> to generate
 a shared secret. <strong>Bob</strong> will combine his <code>private key</code> with <strong>Alice</strong>'s
 <code>public key</code> to generate the same shared secret.</p>
-<pre><code>Dh(AlicePriv, BobPub) == Dh(BobPriv, AlicePub)
-</code></pre>
+<blockquote>
+<p>\( Dh(Priv^{Alice}, Pub^{Bob}) = Dh(Priv^{Bob}, Pub^{Alice}) \)</p>
+</blockquote>
 <pre class="mermaid">flowchart LR
     Aprv(Alice Private Key) -.-&gt; Apub(Alice Public Key)
     Bprv(Bob Private Key) -.-&gt; Bpub(Bob Public Key)
@@ -275,7 +279,7 @@ entries set in the passport's chain. Here we defines the passport's
 <em>SharedKey</em>. It is a key that is encrypted for every other passport's
 key. Every time a <em>SharedKey</em> is register it deprecates the use of the
 previously declared _SharedKey_s.</p>
-<p>The <code>SharedKey</code> are encrypted using the <code>Npsk0</code> pattern of the noise protocol.
+<p>The <code>SharedKey</code> are encrypted using the <a href="keynesis/../noise/00_introduction.html#pattern-npsk0"><code>Npsk0</code></a> pattern of the noise protocol.
 This allows to encrypt the data in such a way that only the recipient of
 the key can retrieve the <code>SharedKey</code> if they also know the <em>pre shared key</em>.</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -303,7 +307,7 @@ forward secrecy, zero round-trip encryption, and other advanced features.</p>
 <li><em>mutual authentication</em>: it means all the participants are proving to
 their identity to each others;</li>
 <li><em>identity hiding</em>: means that no outside observer can find out the
-identity if the participants;</li>
+identity of the participants;</li>
 <li><em>forward secrecy</em>: it means that even if the long term keys of the participants
 are compromised the session keys are protected as well as protecting the past
 keys if the recent keys are compromised. In other words: we are protecting
@@ -314,61 +318,246 @@ data to a recipient without prior exchanged messages.</li>
 <p>How the encrypted sessions are established is called Handshake Patterns. These
 are the first sequence of messages the participants are to exchanged in order
 to establish the encrypted session.</p>
-<p>We are leveraging different of these handshake pattens in our protocols.</p>
-<h2 id="pattern-npsk0"><a class="header" href="#pattern-npsk0">Pattern: <code>Npsk0</code></a></h2>
-<p>More details on the <a href="https://noiseexplorer.com/patterns/Npsk0/"><code>Noise's explorer Npsk0</code></a></p>
-<ul>
-<li><input disabled="" type="checkbox" checked=""/>
-Mutual authentication</li>
-<li><input disabled="" type="checkbox" checked=""/>
-Zero round trip encryption</li>
-<li>[/] Identity hiding</li>
-<li><input disabled="" type="checkbox"/>
-Forward secrecy</li>
-</ul>
-<p>We are using this pattern in the passport to encrypt the shared secret key
-between all the <em>registered keys</em> of the passport. All it uses
-is the <code>pre-shared key</code> (psk) with the public key of the recipient.</p>
-<p>Using this pattern allows us to have a fairly small encrypted data
-in the passport that requires only the extra ephemeral public key
-to be stored along with the encrypted data.</p>
-<h2 id="pattern-ik"><a class="header" href="#pattern-ik">Pattern: <code>IK</code></a></h2>
-<p>More details on the <a href="https://noiseexplorer.com/patterns/IK/"><code>Noise's explorer IK</code></a></p>
-<ul>
-<li><input disabled="" type="checkbox" checked=""/>
-Mutual authentication</li>
-<li><input disabled="" type="checkbox"/>
-Zero round trip encryption</li>
-<li><input disabled="" type="checkbox" checked=""/>
-Identity hiding</li>
-<li><input disabled="" type="checkbox" checked=""/>
-Forward secrecy</li>
-</ul>
-<p>In only one round trip we can establish the most secure form of encrypted
-session available to us. The only prerequisite to establish it is to know
-in advanced the public key of the remote peer.</p>
-<p>ASMTP uses this scheme to establish the peer to peer encryption between
-nodes in the network. The public keys are expecting to be the public keys
-of the nodes that are also present in the node's gossips (more info
-about <a href="noise/../poldercast/00_introduction.html">poldercast's gossips here</a>).</p>
+<p>We are leveraging different of these handshake pattens in our protocols. These
+patterns are described below.</p>
 <h2 id="pattern-x"><a class="header" href="#pattern-x">Pattern: <code>X</code></a></h2>
-<p>More details on the <a href="https://noiseexplorer.com/patterns/X/"><code>Noise's explorer X</code></a></p>
 <ul>
-<li>[/] Mutual authentication</li>
-<li><input disabled="" type="checkbox" checked=""/>
-Zero round trip encryption</li>
-<li><input disabled="" type="checkbox" checked=""/>
-Identity hiding</li>
-<li><input disabled="" type="checkbox"/>
-Forward secrecy</li>
+<li>✅ Mutual authentication</li>
+<li>✅ Zero round trip encryption</li>
+<li>✅ Identity hiding</li>
+<li>❌ Forward secrecy</li>
 </ul>
 <p>This pattern allows for 0 round trip encryption. Yet it allows to authenticate
 both the sender to the receiver (the sender's public key is transmitted in the
-message -- encrypted).</p>
-<p>This pattern is used to send the encrypted messages between 2 passports with the
-long term keys being the passport's shared keys. Because we are generating a new
-ephemeral keys for each messages we have guarantees that the messages can only
-be decrypted with the recipient's private key.</p>
+message -- encrypted). Only the recipient can retrieve the identity of the sender.</p>
+<p>This type of message is used by <strong>ASMTP</strong> to encrypt the messages users will
+send to each other. The <code>Public Key</code> used here are the <code>Shared Key</code> in Alice's
+and Bob's respective passports.</p>
+<h3 id="encrypting-the-message"><a class="header" href="#encrypting-the-message">encrypting the message</a></h3>
+<pre class="mermaid">sequenceDiagram
+    participant Alice
+    participant Session
+    participant Bob
+    autonumber
+
+    Bob--)Alice: Bob's Public Key
+
+    Note over Alice,Session: Alice starts sending a message to Bob
+
+    Alice-&gt;&gt;+Alice: generate ephemeral key
+    Alice--&gt;&gt;Session: serialise ephemeral public key
+    Alice-&gt;&gt;-Session: DH(ephemeral key, Bob's public key)
+    
+    Alice--&gt;&gt;Session: serialise Alice's Public Key
+    Alice-&gt;&gt;Session: DH(Alice's Key, Bob's public key)
+
+    Alice--&gt;&gt;Session: Encrypt payload
+</pre>
+<ol>
+<li>Alice needs to know Bob's public key in advance;</li>
+<li>Alice generates an ephemeral key. Its lifetime is limited to the configuration of the session and needs the key will need to be securely destroyed once no longer needed;</li>
+<li>Alice sets the ephemeral public key in the session. It is serialized in the message payload and is used to update the encryption state of the session;</li>
+<li>Alice sets the result of the key exchange (Diffie-Hellman: <em>DH</em>) between the ephemeral private key and Bob's public key. Alice can now destroy the ephemeral secret key.</li>
+<li>Alice sets her public key in the session. It is serialized in the mesasge payload and is used to update the encryption state of the session;</li>
+<li>Alice sets the result of the key exchange (Diffie-Hellman: <em>DH</em>) between her private key and Bob's public key.</li>
+<li>Alice sets the payload to encrypt.</li>
+</ol>
+<h3 id="decrypting-the-message"><a class="header" href="#decrypting-the-message">decrypting the message</a></h3>
+<pre class="mermaid">sequenceDiagram
+    participant Session
+    participant Bob
+    autonumber
+
+    Note over Session,Bob: Bob starts reading a message
+
+    Session--&gt;&gt;Bob: deserialize ephemeral public key
+    
+    Bob-&gt;&gt;Session: DH(Bob's Key, Ephemeral's public key)
+
+    Session--&gt;&gt;Bob: deserialize sender's public key
+
+    Note over Bob,Session: Bob now knows the message is from Alice (sender's public key)
+
+    Bob-&gt;&gt;Session: DH(Bob's Key, Sender's public key)
+    Session--&gt;&gt;Bob: Decrypt payload
+</pre>
+<ol>
+<li>Bob deserializes the ephemeral public key from the payload;</li>
+<li>Bob sets the result of the key exchange (<em>DH</em>) between his private key and the deserialized ephemeral public key;</li>
+<li>Bob deserializes the sender's public key.</li>
+<li>Bob sets the result of the key exchange (<em>DH</em>) between his private key and the deserialized sender's public key;</li>
+<li>Bob decrypts the payload</li>
+</ol>
+<p>More info on <a href="https://noiseexplorer.com/patterns/X/"><code>Noise's explorer</code></a></p>
+<h2 id="pattern-npsk0"><a class="header" href="#pattern-npsk0">Pattern: <code>Npsk0</code></a></h2>
+<ul>
+<li>✅ Mutual authentication: thanks to the psk</li>
+<li>✅ Zero round trip encryption: we only care about the recipient reading the message</li>
+<li>✅ Identity hiding: it is not possible to know who are the participants of this exchange</li>
+<li>❌ Forward secrecy: if the <code>psk</code> or the recipient keys are compromised the message is compromised</li>
+</ul>
+<p>This pattern is used to encrypt the shared secret key in the passport's blocks.
+Using this pattern allows us to have a fairly small encrypted data
+in the passport that requires only the extra ephemeral public key
+to be stored along with the encrypted data.</p>
+<h3 id="encrypting-the-message-1"><a class="header" href="#encrypting-the-message-1">encrypting the message</a></h3>
+<pre class="mermaid">sequenceDiagram
+    participant Alice
+    participant Session
+    participant Bob
+    autonumber
+
+    Bob--)Alice: Bob's Public Key
+
+    Note over Alice,Session: Alice starts sending a message to Bob
+
+    rect rgba(0, 0, 255, .1)
+      Alice-&gt;&gt;Session: pre-shared secret (password)
+    end
+
+    Alice-&gt;&gt;+Alice: generate ephemeral key
+    Alice--&gt;&gt;Session: serialise ephemeral public key
+    
+    Alice-&gt;&gt;-Session: DH(Ephemeral Key, Bob's public key)
+
+    Alice--&gt;&gt;Session: Encrypt payload
+</pre>
+<ol>
+<li>Alice needs to know Bob's public key in advance;</li>
+<li>Alice sets a pre-shared secret, usually it can be a password for example. Bob will need to be aware of that secret too in order to decrypt the message;</li>
+<li>Alice generates an ephemeral key. Its lifetime is limited to the configuration of the session and needs the key will need to be securely destroyed once no longer needed;</li>
+<li>Alice sets the ephemeral public key in the session. It is serialized in the message payload and is used to update the encryption state of the session;</li>
+<li>Alice sets the result of the key exchange (Diffie-Hellman: <em>DH</em>) between the ephemeral private key and Bob's public key. Alice can now destroy the ephemeral secret key.</li>
+<li>Alice sets the payload to encrypt.</li>
+</ol>
+<h3 id="decrypting-the-message-1"><a class="header" href="#decrypting-the-message-1">decrypting the message</a></h3>
+<pre class="mermaid">sequenceDiagram
+    participant Session
+    participant Bob
+    autonumber
+
+    Note over Session,Bob: Bob starts reading a message from Alice
+
+    rect rgba(0, 0, 255, .1)
+      Bob-&gt;&gt;Session: pre-shared secret (password)
+    end
+
+    Session--&gt;&gt;Bob: deserialise ephemeral public key
+    
+    Bob-&gt;&gt;Session: DH(Bob's Key, Ephemeral's public key)
+
+    Session--&gt;&gt;Bob: Decrypt payload
+</pre>
+<ol>
+<li>Bob sets the pre-shared secret, it needs to be the same as the one Alice used;</li>
+<li>Bob deserializes the ephemeral public key from the payload;</li>
+<li>Bob sets the result of the key exchange (<em>DH</em>) between his private key and the deserialized ephemeral public key;</li>
+<li>Bob decrypts the payload</li>
+</ol>
+<p>More info on <a href="https://noiseexplorer.com/patterns/Npsk0/"><code>Noise's explorer</code></a></p>
+<h2 id="pattern-ik"><a class="header" href="#pattern-ik">Pattern: <code>IK</code></a></h2>
+<ul>
+<li>✅ Mutual authentication</li>
+<li>❌ Zero round trip encryption</li>
+<li>✅ Identity hiding</li>
+<li>✅ Forward secrecy</li>
+</ul>
+<p>In only one round trip we can establish the most secure form of encrypted
+session available to us. The only prerequisite to establish this kind of
+session is to know in advance the public key of the remote peer.</p>
+<p>It starts exactly like the <code>X</code> pattern described previously. However we are
+assuming the session to be finally started after another message is received
+from the recipient.</p>
+<p>This pattern is used to establish secure and long connections between nodes
+on the network. The public keys used here are the same one serialised in the
+<a href="noise/../poldercast/00_introduction.html#gossips">poldercast's gossips</a>. This guarantees we are talking to the appropriate
+nodes for the right reasons (see <a href="noise/../poldercast/00_introduction.html">poldercast</a> for more details).</p>
+<h3 id="encrypting-the-message-2"><a class="header" href="#encrypting-the-message-2">encrypting the message</a></h3>
+<pre class="mermaid">sequenceDiagram
+    participant Alice
+    participant Session
+    participant Bob
+    autonumber
+
+    Bob--)Alice: Bob's Public Key
+
+    Note over Alice,Session: Alice starts sending a message to Bob
+
+    Alice-&gt;&gt;+Alice: generate Alice's ephemeral key
+    Alice--&gt;&gt;Session: serialise Alice's ephemeral public key
+    Alice-&gt;&gt;Session: DH(Alice's ephemeral key, Bob's public key)
+    
+    Alice--&gt;&gt;Session: serialise Alice's Public Key
+    Alice-&gt;&gt;Session: DH(Alice's Key, Bob's public key)
+
+    Note over Session,Bob: Bob processes the message and replies
+
+    Session--&gt;&gt;Alice: deserialize Bob's ephemeral public key
+    Alice-&gt;&gt;-Session: DH(Alice's ephemeral key, Bob's ephemeral public key)
+    Alice-&gt;&gt;Session: DH(Alice's key, Bob's ephemeral public key)
+    
+
+    par sending messages
+      Alice--)Session: Encrypt payload
+    and receiving messages
+      Session--)Alice: Decrypt payload
+    end
+</pre>
+<ol>
+<li>Alice needs to know Bob's public key in advance;</li>
+<li>Alice generates an ephemeral key. Its lifetime is limited to the configuration of the session and needs the key will need to be securely destroyed once no longer needed;</li>
+<li>Alice sets Alice's ephemeral public key in the session. It is serialized in the message payload and is used to update the encryption state of the session;</li>
+<li>Alice sets the result of the key exchange (Diffie-Hellman: <em>DH</em>) between Alice's ephemeral private key and Bob's public key.</li>
+<li>Alice sets her public key in the session. It is serialized in the message payload and is used to update the encryption state of the session;</li>
+<li>Alice sets the result of the key exchange (Diffie-Hellman: <em>DH</em>) between her private key and Bob's public key.</li>
+<li>Alice deserializes Bob's ephemeral public key;</li>
+<li>Alice sets the result of the key exchange (Diffie-Hellman: <em>DH</em>) between Alice's ephemeral private key and Bob's ephemeral public key. Alice's ephemeral key can now be securely destroyed.</li>
+<li>Alice sets the result of the key exchange (Diffie-Hellman: <em>DH</em>) between Alice's private key and Bob's ephemeral public key.</li>
+<li>Alice can use the session to send messages to Bob</li>
+<li>Alice can use the session to receive messages from Bob</li>
+</ol>
+<h3 id="decrypting-the-message-2"><a class="header" href="#decrypting-the-message-2">decrypting the message</a></h3>
+<pre class="mermaid">sequenceDiagram
+    participant Session
+    participant Bob
+    autonumber
+
+    Note over Session,Bob: Bob starts reading a message
+
+    Session--&gt;&gt;Bob: deserialize sender's ephemeral public key
+    
+    Bob-&gt;&gt;Session: DH(Bob's Key, Sender's ephemeral public key)
+
+    Session--&gt;&gt;Bob: deserialize sender's public key
+
+    Note over Bob,Session: Bob now knows the message is from Alice (sender's public key)
+
+    Bob-&gt;&gt;Session: DH(Bob's Key, Alice's public key)
+
+    Bob-&gt;&gt;+Bob: generate Bob's ephemeral key
+    Bob--&gt;&gt;Session: serialise Bob's ephemeral public key
+    Bob-&gt;&gt;Session: DH(Bob's ephemeral key, Alice's ephemeral public key)
+    Bob-&gt;&gt;-Session: DH(Bob's ephemeral key, Alice's public key)
+
+    par sending messages
+      Session--)Bob: Decrypt payload
+    and receiving messages
+      Bob--)Session: Encrypt payload
+    end
+</pre>
+<ol>
+<li>Bob deserializes the sender's ephemeral public key from the payload;</li>
+<li>Bob sets the result of the key exchange (<em>DH</em>) between his private key and the sender's ephemeral public key;</li>
+<li>Bob deserializes the sender's public key, we now know it is Alice.</li>
+<li>Bob sets the result of the key exchange (<em>DH</em>) between his private key and Alice's public key;</li>
+<li>Bob generates an ephemeral key. Its lifetime is limited to the configuration of the session and needs the key will need to be securely destroyed once no longer needed;</li>
+<li>Bob sets Bob's ephemeral public key in the session. It is serialized in the message payload and is used to update the encryption state of the session;</li>
+<li>Bob sets the result of the key exchange (Diffie-Hellman: <em>DH</em>) between Bob's ephemeral private key and Alice's ephemeral public key.</li>
+<li>Bob sets the result of the key exchange (Diffie-Hellman: <em>DH</em>) between Bob's ephemeral private key and Alice's public key.</li>
+<li>Bob can use the session to receive messages from Alice</li>
+<li>Bob can use the session to send messages to Alice</li>
+</ol>
+<p>More info on <a href="https://noiseexplorer.com/patterns/IK/"><code>Noise's explorer</code></a></p>
 <h1 id="poldercast"><a class="header" href="#poldercast">Poldercast</a></h1>
 <p>Poldercast is our peer to peer (P2P) pub/sub algorithm. It defines how
 nodes on the network are supposed to discover each others as well as
@@ -384,7 +573,7 @@ network and the list of topic of interests.</p>
 types of information:</p>
 <ul>
 <li>the ip address (ipv4 or ipv6) with the port number;</li>
-<li>the ed25519 public key of the node</li>
+<li>the <a href="poldercast/../keynesis/00_introduction.html#keys">ed25519 public key</a> of the node</li>
 </ul>
 <p>The Gossip also embeds a timestamp as well as a signature generated
 with the node's private key. This allows us to know the data is the
@@ -465,7 +654,9 @@ sample nodes on the network.</p>
         
         <script type="text/javascript">
         window.addEventListener('load', function() {
-            window.setTimeout(window.print, 100);
+            MathJax.Hub.Register.StartupHook('End', function() {
+                window.setTimeout(window.print, 100);
+            });
         });
         </script>
         

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Noise - ASMTP</title>
+        <title>Introduction - ASMTP</title>
         
         
 
@@ -18,38 +18,41 @@
         <meta name="theme-color" content="#ffffff" />
 
         
-        <link rel="icon" href="../favicon.svg">
+        <link rel="icon" href="favicon.svg">
         
         
-        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="shortcut icon" href="favicon.png">
         
-        <link rel="stylesheet" href="../css/variables.css">
-        <link rel="stylesheet" href="../css/general.css">
-        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
         
-        <link rel="stylesheet" href="../css/print.css" media="print">
+        <link rel="stylesheet" href="css/print.css" media="print">
         
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
         
-        <link rel="stylesheet" href="../fonts/fonts.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
         
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../highlight.css">
-        <link rel="stylesheet" href="../tomorrow-night.css">
-        <link rel="stylesheet" href="../ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
         
 
         
+        <!-- MathJax -->
+        <script async type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
     </head>
     <body>
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
-            var path_to_root = "../";
+            var path_to_root = "";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
@@ -95,7 +98,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="../keynesis/00_introduction.html"><strong aria-hidden="true">2.</strong> Keynesis</a></li><li class="chapter-item expanded "><a href="../noise/00_introduction.html" class="active"><strong aria-hidden="true">3.</strong> Noise</a></li><li class="chapter-item expanded "><a href="../poldercast/00_introduction.html"><strong aria-hidden="true">4.</strong> Poldercast</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="keynesis/00_introduction.html"><strong aria-hidden="true">2.</strong> Keynesis</a></li><li class="chapter-item expanded "><a href="noise/00_introduction.html"><strong aria-hidden="true">3.</strong> Noise</a></li><li class="chapter-item expanded "><a href="poldercast/00_introduction.html"><strong aria-hidden="true">4.</strong> Poldercast</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -131,7 +134,7 @@
 
                     <div class="right-buttons">
                         
-                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
@@ -163,97 +166,26 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="noise"><a class="header" href="#noise">Noise</a></h1>
-<p>The <a href="https://noiseprotocol.org">Noise Protocol</a> is a framework that we use for our cryptographic
-protocols. It defines how to establish encrypted sessions between
-senders and recipients.</p>
-<blockquote>
-<p>Noise protocols support mutual and optional authentication, identity hiding,
-forward secrecy, zero round-trip encryption, and other advanced features.</p>
-</blockquote>
-<ul>
-<li><em>mutual authentication</em>: it means all the participants are proving to
-their identity to each others;</li>
-<li><em>identity hiding</em>: means that no outside observer can find out the
-identity if the participants;</li>
-<li><em>forward secrecy</em>: it means that even if the long term keys of the participants
-are compromised the session keys are protected as well as protecting the past
-keys if the recent keys are compromised. In other words: we are protecting
-the past communications.</li>
-<li><em>zero round-trip encryption</em>: it is possible to send encrypted application
-data to a recipient without prior exchanged messages.</li>
-</ul>
-<p>How the encrypted sessions are established is called Handshake Patterns. These
-are the first sequence of messages the participants are to exchanged in order
-to establish the encrypted session.</p>
-<p>We are leveraging different of these handshake pattens in our protocols.</p>
-<h2 id="pattern-npsk0"><a class="header" href="#pattern-npsk0">Pattern: <code>Npsk0</code></a></h2>
-<p>More details on the <a href="https://noiseexplorer.com/patterns/Npsk0/"><code>Noise's explorer Npsk0</code></a></p>
-<ul>
-<li><input disabled="" type="checkbox" checked=""/>
-Mutual authentication</li>
-<li><input disabled="" type="checkbox" checked=""/>
-Zero round trip encryption</li>
-<li>[/] Identity hiding</li>
-<li><input disabled="" type="checkbox"/>
-Forward secrecy</li>
-</ul>
-<p>We are using this pattern in the passport to encrypt the shared secret key
-between all the <em>registered keys</em> of the passport. All it uses
-is the <code>pre-shared key</code> (psk) with the public key of the recipient.</p>
-<p>Using this pattern allows us to have a fairly small encrypted data
-in the passport that requires only the extra ephemeral public key
-to be stored along with the encrypted data.</p>
-<h2 id="pattern-ik"><a class="header" href="#pattern-ik">Pattern: <code>IK</code></a></h2>
-<p>More details on the <a href="https://noiseexplorer.com/patterns/IK/"><code>Noise's explorer IK</code></a></p>
-<ul>
-<li><input disabled="" type="checkbox" checked=""/>
-Mutual authentication</li>
-<li><input disabled="" type="checkbox"/>
-Zero round trip encryption</li>
-<li><input disabled="" type="checkbox" checked=""/>
-Identity hiding</li>
-<li><input disabled="" type="checkbox" checked=""/>
-Forward secrecy</li>
-</ul>
-<p>In only one round trip we can establish the most secure form of encrypted
-session available to us. The only prerequisite to establish it is to know
-in advanced the public key of the remote peer.</p>
-<p>ASMTP uses this scheme to establish the peer to peer encryption between
-nodes in the network. The public keys are expecting to be the public keys
-of the nodes that are also present in the node's gossips (more info
-about <a href="../poldercast/00_introduction.html">poldercast's gossips here</a>).</p>
-<h2 id="pattern-x"><a class="header" href="#pattern-x">Pattern: <code>X</code></a></h2>
-<p>More details on the <a href="https://noiseexplorer.com/patterns/X/"><code>Noise's explorer X</code></a></p>
-<ul>
-<li>[/] Mutual authentication</li>
-<li><input disabled="" type="checkbox" checked=""/>
-Zero round trip encryption</li>
-<li><input disabled="" type="checkbox" checked=""/>
-Identity hiding</li>
-<li><input disabled="" type="checkbox"/>
-Forward secrecy</li>
-</ul>
-<p>This pattern allows for 0 round trip encryption. Yet it allows to authenticate
-both the sender to the receiver (the sender's public key is transmitted in the
-message -- encrypted).</p>
-<p>This pattern is used to send the encrypted messages between 2 passports with the
-long term keys being the passport's shared keys. Because we are generating a new
-ephemeral keys for each messages we have guarantees that the messages can only
-be decrypted with the recipient's private key.</p>
+                        <h1 id="anonymous-secure-message-transfer-protocol"><a class="header" href="#anonymous-secure-message-transfer-protocol">Anonymous Secure Message Transfer Protocol</a></h1>
+<p>Send messages securely and privately. With <strong>ASMTP</strong> all of your
+messages are encrypted and there is also no metadata of the
+messages exchanged. There are mechanism in place to protect
+the senders and recipients' anonymity.</p>
+<ol>
+<li>all messages are encrypted;</li>
+<li>completely decentralized;</li>
+<li>no more unwarranted messages (no spam, no harassment);</li>
+<li>anonymous to third parties yet with mutual authentication of the participants;</li>
+</ol>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                         
-                            <a rel="prev" href="../keynesis/00_introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
-                                <i class="fa fa-angle-left"></i>
-                            </a>
-                        
 
                         
-                            <a rel="next" href="../poldercast/00_introduction.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="keynesis/00_introduction.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         
@@ -265,13 +197,9 @@ be decrypted with the recipient's private key.</p>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                 
-                    <a rel="prev" href="../keynesis/00_introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
-                        <i class="fa fa-angle-left"></i>
-                    </a>
-                
 
                 
-                    <a rel="next" href="../poldercast/00_introduction.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="keynesis/00_introduction.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 
@@ -294,20 +222,20 @@ be decrypted with the recipient's private key.</p>
         
 
         
-        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
         
 
-        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
 
         <!-- Custom JS scripts -->
         
-        <script type="text/javascript" src="../mermaid.min.js"></script>
+        <script type="text/javascript" src="mermaid.min.js"></script>
         
-        <script type="text/javascript" src="../mermaid-init.js"></script>
+        <script type="text/javascript" src="mermaid-init.js"></script>
         
 
         

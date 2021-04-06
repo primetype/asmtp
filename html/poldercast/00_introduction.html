@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Keynesis - ASMTP</title>
+        <title>Poldercast - ASMTP</title>
         
         
 
@@ -44,6 +44,9 @@
         <!-- Custom theme stylesheets -->
         
 
+        
+        <!-- MathJax -->
+        <script async type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
         
     </head>
     <body>
@@ -95,7 +98,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="../keynesis/00_introduction.html" class="active"><strong aria-hidden="true">2.</strong> Keynesis</a></li><li class="chapter-item expanded "><a href="../noise/00_introduction.html"><strong aria-hidden="true">3.</strong> Noise</a></li><li class="chapter-item expanded "><a href="../poldercast/00_introduction.html"><strong aria-hidden="true">4.</strong> Poldercast</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="../keynesis/00_introduction.html"><strong aria-hidden="true">2.</strong> Keynesis</a></li><li class="chapter-item expanded "><a href="../noise/00_introduction.html"><strong aria-hidden="true">3.</strong> Noise</a></li><li class="chapter-item expanded "><a href="../poldercast/00_introduction.html" class="active"><strong aria-hidden="true">4.</strong> Poldercast</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -163,136 +166,56 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="keynesis"><a class="header" href="#keynesis">Keynesis</a></h1>
-<p><code>keynesis</code> is the library used to provide construct the digital identity
-of a user on the network. Simply put it defines how to links some
-cryptographic keypair together and provides them rolls.</p>
-<h2 id="keys"><a class="header" href="#keys">keys</a></h2>
-<p>Keynesis uses EdDSA (Edwards-curve Digital Signature Algorithm)
-as signing algorithm, it is rather small and fast and
-a very secure protocol. We use Curve25519 for the Diffie-Hellman
-key exchange. Ed25519 keys are composed of two part. Also called
-Ed25519 key pair. There is a <code>private key</code> and a <code>public key</code>.</p>
-<h3 id="signing"><a class="header" href="#signing">Signing</a></h3>
-<p>Signature are create with the <code>private key</code> and can be verified
-with the <code>public key</code>. The digital <code>signature</code> offers non-repudiation.
-This means that the <code>private key</code> cannot deny the authenticity of the
-<code>signature</code> and the <code>document</code> once shared.</p>
-<pre class="mermaid">flowchart
-    Prv(Private Key) -.-&gt; Pub(Public Key)
-    Prv -- Generates --&gt; Signature
-    Pub -- Verifies --&gt; Signature
-
-    style Prv fill:#f9f,stroke:#333,stroke-width:4px
-</pre>
-<h3 id="key-exchange"><a class="header" href="#key-exchange">Key exchange</a></h3>
-<p>Using a projection of the <code>Ed25519</code> keys we can perform a key exchange
-(Diffie-Hellman key exchange). This allows to generate a shared secrets
-between two parties without having to share anything more than
-each other's public key.</p>
-<p>For example: <strong>Alice</strong> generates a key pair, <strong>Bob</strong> generates a key pair.
-<strong>Alice</strong> will combine her <code>private key</code> with <strong>Bob</strong>'s <code>public key</code> to generate
-a shared secret. <strong>Bob</strong> will combine his <code>private key</code> with <strong>Alice</strong>'s
-<code>public key</code> to generate the same shared secret.</p>
-<pre><code>Dh(AlicePriv, BobPub) == Dh(BobPriv, AlicePub)
-</code></pre>
-<pre class="mermaid">flowchart LR
-    Aprv(Alice Private Key) -.-&gt; Apub(Alice Public Key)
-    Bprv(Bob Private Key) -.-&gt; Bpub(Bob Public Key)
-
-    Aprv --&gt; DH1{Key Exchange}
-    Bpub --&gt; DH1
-
-
-    Bprv --&gt; DH2{Key Exchange}
-    Apub --&gt; DH2
-
-    DH1 --&gt; SS&gt;Shared Secret]
-    DH2 --&gt; SS
-
-    style Aprv fill:#f9f,stroke:#333,stroke-width:4px
-    style Bprv fill:#f9f,stroke:#333,stroke-width:4px
-</pre>
-<h2 id="passport"><a class="header" href="#passport">Passport</a></h2>
-<p>A <code>passport</code> is defined as a set of <code>public key</code>s. Each <code>public key</code>
-can represent a device of the user for example. Though it is not limited
-to that only (one can add paper keys or HSM keys for example).</p>
-<p>We use different keys in order to avoid asking the user to use a unique
-passphrase across different devices. This is rather insecure and incentive
-users to use rather weak passwords.</p>
-<h3 id="passports-chain"><a class="header" href="#passports-chain">Passport's chain</a></h3>
-<p>The passport is composed of a series of events: declaration of a new key,
-repudiation of a key and more. This is a blockchain. Every blocks contains
-the list of events (the updates to apply on the passport). Each blocks are
-signed by any of the keys that are registered at the time of the block
-creation. Each block referencing a previous block (hence the <em>chain</em>).</p>
-<p>In order to create a new passport one simply creates a new block without
-a previous block. Then new keys needs to be declared in order to allow
-these keys to create blocks for the passport's chain.</p>
-<pre class="mermaid">flowchart LR
-    subgraph blockA
-        a1[Register key1] --- a2
-        a2[Register SharedKey1]
-    end
-
-    subgraph blockB
-        b1[Register key2] --- b2
-        b2[Register SharedKey2]
-    end
-
-    subgraph blockC
-        c1[Repudiate key1] --- c2
-        c2[Register SharedKey3]
-    end
-
-    blockA --&gt; blockB
-    blockB --&gt; blockC
-</pre>
-<h3 id="passports-keys"><a class="header" href="#passports-keys">Passport's keys</a></h3>
-<p>the passport's keys are all the keys that have been registered
-in the passport chain and that have not been repudiated yet.</p>
-<p>Any of the passport keys can submit a new block in the passport's
-chain. Allowing to declare or repudiate new keys in the passport.
-But also to generate a new <em>Shared Key</em> (see below) or any other
-new event entries that may be defined later.</p>
-<h3 id="passports-shared-key"><a class="header" href="#passports-shared-key">Passport's shared key</a></h3>
-<p>The passport's keys are to maintain the state of the passport's chain.
-Other protocols or interactions may requires to have other kind of
-entries set in the passport's chain. Here we defines the passport's
-<em>SharedKey</em>. It is a key that is encrypted for every other passport's
-key. Every time a <em>SharedKey</em> is register it deprecates the use of the
-previously declared _SharedKey_s.</p>
-<p>The <code>SharedKey</code> are encrypted using the <code>Npsk0</code> pattern of the noise protocol.
-This allows to encrypt the data in such a way that only the recipient of
-the key can retrieve the <code>SharedKey</code> if they also know the <em>pre shared key</em>.</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let psk = ; // 32 bytes of pre shared key
-let shared_secret_key = ; // curve25519 private key
-
-for key in passport.keys() {
-    let ephemeral = SecretKey::generate();
-
-    let encrypted = noise::N::send(ephemeral, psk, key, shared_secret_key);
-}
-<span class="boring">}
-</span></code></pre></pre>
+                        <h1 id="poldercast"><a class="header" href="#poldercast">Poldercast</a></h1>
+<p>Poldercast is our peer to peer (P2P) pub/sub algorithm. It defines how
+nodes on the network are supposed to discover each others as well as
+how events should be propagated from nodes to nodes in order to reach
+the appropriate recipients.</p>
+<p>You can find the paper here: <a href="https://hal.inria.fr/hal-01555561/document">Poldercast</a>.</p>
+<p>Our implementation is here: <a href="https://github.com/primetype/poldercast#README.md"><code>poldercast</code></a>.</p>
+<h2 id="gossips"><a class="header" href="#gossips">Gossips</a></h2>
+<p>When connecting to the network the node generates a Gossip of itself.
+It contains the necessary information to identify the node in the
+network and the list of topic of interests.</p>
+<p>In our implementation, the identification of the node necessitate two
+types of information:</p>
+<ul>
+<li>the ip address (ipv4 or ipv6) with the port number;</li>
+<li>the <a href="../keynesis/00_introduction.html#keys">ed25519 public key</a> of the node</li>
+</ul>
+<p>The Gossip also embeds a timestamp as well as a signature generated
+with the node's private key. This allows us to know the data is the
+one that was originally generated by this private key associated to
+this public key (see <a href="../keynesis/00_introduction.html#signing">key and signature</a>).</p>
+<h2 id="topics-of-interest"><a class="header" href="#topics-of-interest">Topics of interest</a></h2>
+<p>The topic of interest is a list of nodes topic identifier (<code>topic</code>)
+with an interest level. This allows for each nodes to prioritize
+how much priority they put to some set of information.</p>
+<p>The topics is an array of 32 bytes. It can be derived from a <code>hash</code>
+of something else. A static value or a public key. This allows for
+a large size of different topics to exist on the network and should
+provide enough space for everyone to exist on the network.</p>
+<h2 id="poldercast-layers"><a class="header" href="#poldercast-layers">Poldercast Layers</a></h2>
+<p>Poldercast algorithm can be simply described as 3 different layers.</p>
+<p>One of these layers is called the <code>ring</code> layer and is responsible to define how
+events of certain topic are supposed to be distributed based on the
+identifier of the node.</p>
+<p>There is also the <code>vicinity</code> layer that is responsible to find
+nodes that have similar interests (based on the topics of interest of
+our nodes and the other nodes of the network).</p>
+<p>Finally there is the <code>cyclon</code> layer that is responsible to randomly
+sample nodes on the network.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                         
-                            <a rel="prev" href="../introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../noise/00_introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
                         
 
-                        
-                            <a rel="next" href="../noise/00_introduction.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
-                            </a>
                         
 
                         <div style="clear: both"></div>
@@ -302,15 +225,11 @@ for key in passport.keys() {
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                 
-                    <a rel="prev" href="../introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../noise/00_introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
 
-                
-                    <a rel="next" href="../noise/00_introduction.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
-                    </a>
                 
             </nav>
 
