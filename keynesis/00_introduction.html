@@ -1,0 +1,353 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Keynesis - ASMTP</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="../favicon.svg">
+        
+        
+        <link rel="shortcut icon" href="../favicon.png">
+        
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        
+        <link rel="stylesheet" href="../css/print.css" media="print">
+        
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="../keynesis/00_introduction.html" class="active"><strong aria-hidden="true">2.</strong> Keynesis</a></li><li class="chapter-item expanded "><a href="../noise/00_introduction.html"><strong aria-hidden="true">3.</strong> Noise</a></li><li class="chapter-item expanded "><a href="../poldercast/00_introduction.html"><strong aria-hidden="true">4.</strong> Poldercast</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">ASMTP</h1>
+
+                    <div class="right-buttons">
+                        
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="keynesis"><a class="header" href="#keynesis">Keynesis</a></h1>
+<p><code>keynesis</code> is the library used to provide construct the digital identity
+of a user on the network. Simply put it defines how to links some
+cryptographic keypair together and provides them rolls.</p>
+<h2 id="keys"><a class="header" href="#keys">keys</a></h2>
+<p>Keynesis uses EdDSA (Edwards-curve Digital Signature Algorithm)
+as signing algorithm, it is rather small and fast and
+a very secure protocol. We use Curve25519 for the Diffie-Hellman
+key exchange. Ed25519 keys are composed of two part. Also called
+Ed25519 key pair. There is a <code>private key</code> and a <code>public key</code>.</p>
+<h3 id="signing"><a class="header" href="#signing">Signing</a></h3>
+<p>Signature are create with the <code>private key</code> and can be verified
+with the <code>public key</code>. The digital <code>signature</code> offers non-repudiation.
+This means that the <code>private key</code> cannot deny the authenticity of the
+<code>signature</code> and the <code>document</code> once shared.</p>
+<pre><code class="language-mermaid">flowchart
+    Prv(Private Key) -.-&gt; Pub(Public Key)
+    Prv -- Generates --&gt; Signature
+    Pub -- Verifies --&gt; Signature
+
+    style Prv fill:#f9f,stroke:#333,stroke-width:4px
+</code></pre>
+<h3 id="key-exchange"><a class="header" href="#key-exchange">Key exchange</a></h3>
+<p>Using a projection of the <code>Ed25519</code> keys we can perform a key exchange
+(Diffie-Hellman key exchange). This allows to generate a shared secrets
+between two parties without having to share anything more than
+each other's public key.</p>
+<p>For example: <strong>Alice</strong> generates a key pair, <strong>Bob</strong> generates a key pair.
+<strong>Alice</strong> will combine her <code>private key</code> with <strong>Bob</strong>'s <code>public key</code> to generate
+a shared secret. <strong>Bob</strong> will combine his <code>private key</code> with <strong>Alice</strong>'s
+<code>public key</code> to generate the same shared secret.</p>
+<pre><code>Dh(AlicePriv, BobPub) == Dh(BobPriv, AlicePub)
+</code></pre>
+<pre><code class="language-mermaid">flowchart LR
+    Aprv(Alice Private Key) -.-&gt; Apub(Alice Public Key)
+    Bprv(Bob Private Key) -.-&gt; Bpub(Bob Public Key)
+
+    Aprv --&gt; DH1{Key Exchange}
+    Bpub --&gt; DH1
+
+
+    Bprv --&gt; DH2{Key Exchange}
+    Apub --&gt; DH2
+
+    DH1 --&gt; SS&gt;Shared Secret]
+    DH2 --&gt; SS
+
+    style Aprv fill:#f9f,stroke:#333,stroke-width:4px
+    style Bprv fill:#f9f,stroke:#333,stroke-width:4px
+</code></pre>
+<h2 id="passport"><a class="header" href="#passport">Passport</a></h2>
+<p>A <code>passport</code> is defined as a set of <code>public key</code>s. Each <code>public key</code>
+can represent a device of the user for example. Though it is not limited
+to that only (one can add paper keys or HSM keys for example).</p>
+<p>We use different keys in order to avoid asking the user to use a unique
+passphrase across different devices. This is rather insecure and incentive
+users to use rather weak passwords.</p>
+<h3 id="passports-chain"><a class="header" href="#passports-chain">Passport's chain</a></h3>
+<p>The passport is composed of a series of events: declaration of a new key,
+repudiation of a key and more. This is a blockchain. Every blocks contains
+the list of events (the updates to apply on the passport). Each blocks are
+signed by any of the keys that are registered at the time of the block
+creation. Each block referencing a previous block (hence the <em>chain</em>).</p>
+<p>In order to create a new passport one simply creates a new block without
+a previous block. Then new keys needs to be declared in order to allow
+these keys to create blocks for the passport's chain.</p>
+<pre><code class="language-mermaid">flowchart LR
+    subgraph blockA
+        a1[Register key1] --- a2
+        a2[Register SharedKey1]
+    end
+
+    subgraph blockB
+        b1[Register key2] --- b2
+        b2[Register SharedKey2]
+    end
+
+    subgraph blockC
+        c1[Repudiate key1] --- c2
+        c2[Register SharedKey3]
+    end
+
+    blockA --&gt; blockB
+    blockB --&gt; blockC
+</code></pre>
+<h3 id="passports-keys"><a class="header" href="#passports-keys">Passport's keys</a></h3>
+<p>the passport's keys are all the keys that have been registered
+in the passport chain and that have not been repudiated yet.</p>
+<p>Any of the passport keys can submit a new block in the passport's
+chain. Allowing to declare or repudiate new keys in the passport.
+But also to generate a new <em>Shared Key</em> (see below) or any other
+new event entries that may be defined later.</p>
+<h3 id="passports-shared-key"><a class="header" href="#passports-shared-key">Passport's shared key</a></h3>
+<p>The passport's keys are to maintain the state of the passport's chain.
+Other protocols or interactions may requires to have other kind of
+entries set in the passport's chain. Here we defines the passport's
+<em>SharedKey</em>. It is a key that is encrypted for every other passport's
+key. Every time a <em>SharedKey</em> is register it deprecates the use of the
+previously declared _SharedKey_s.</p>
+<p>The <code>SharedKey</code> are encrypted using the <code>Npsk0</code> pattern of the noise protocol.
+This allows to encrypt the data in such a way that only the recipient of
+the key can retrieve the <code>SharedKey</code> if they also know the <em>pre shared key</em>.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let psk = ; // 32 bytes of pre shared key
+let shared_secret_key = ; // curve25519 private key
+
+for key in passport.keys() {
+    let ephemeral = SecretKey::generate();
+
+    let encrypted = noise::N::send(ephemeral, psk, key, shared_secret_key);
+}
+<span class="boring">}
+</span></code></pre></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../noise/00_introduction.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../noise/00_introduction.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+        <script type="text/javascript" src="../mermaid.min.js"></script>
+        
+        <script type="text/javascript" src="../mermaid-init.js"></script>
+        
+
+        
+
+    </body>
+</html>
