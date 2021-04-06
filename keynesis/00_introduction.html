@@ -178,13 +178,13 @@ Ed25519 key pair. There is a <code>private key</code> and a <code>public key</co
 with the <code>public key</code>. The digital <code>signature</code> offers non-repudiation.
 This means that the <code>private key</code> cannot deny the authenticity of the
 <code>signature</code> and the <code>document</code> once shared.</p>
-<pre><code class="language-mermaid">flowchart
+<pre class="mermaid">flowchart
     Prv(Private Key) -.-&gt; Pub(Public Key)
     Prv -- Generates --&gt; Signature
     Pub -- Verifies --&gt; Signature
 
     style Prv fill:#f9f,stroke:#333,stroke-width:4px
-</code></pre>
+</pre>
 <h3 id="key-exchange"><a class="header" href="#key-exchange">Key exchange</a></h3>
 <p>Using a projection of the <code>Ed25519</code> keys we can perform a key exchange
 (Diffie-Hellman key exchange). This allows to generate a shared secrets
@@ -196,7 +196,7 @@ a shared secret. <strong>Bob</strong> will combine his <code>private key</code> 
 <code>public key</code> to generate the same shared secret.</p>
 <pre><code>Dh(AlicePriv, BobPub) == Dh(BobPriv, AlicePub)
 </code></pre>
-<pre><code class="language-mermaid">flowchart LR
+<pre class="mermaid">flowchart LR
     Aprv(Alice Private Key) -.-&gt; Apub(Alice Public Key)
     Bprv(Bob Private Key) -.-&gt; Bpub(Bob Public Key)
 
@@ -212,7 +212,7 @@ a shared secret. <strong>Bob</strong> will combine his <code>private key</code> 
 
     style Aprv fill:#f9f,stroke:#333,stroke-width:4px
     style Bprv fill:#f9f,stroke:#333,stroke-width:4px
-</code></pre>
+</pre>
 <h2 id="passport"><a class="header" href="#passport">Passport</a></h2>
 <p>A <code>passport</code> is defined as a set of <code>public key</code>s. Each <code>public key</code>
 can represent a device of the user for example. Though it is not limited
@@ -229,7 +229,7 @@ creation. Each block referencing a previous block (hence the <em>chain</em>).</p
 <p>In order to create a new passport one simply creates a new block without
 a previous block. Then new keys needs to be declared in order to allow
 these keys to create blocks for the passport's chain.</p>
-<pre><code class="language-mermaid">flowchart LR
+<pre class="mermaid">flowchart LR
     subgraph blockA
         a1[Register key1] --- a2
         a2[Register SharedKey1]
@@ -247,7 +247,7 @@ these keys to create blocks for the passport's chain.</p>
 
     blockA --&gt; blockB
     blockB --&gt; blockC
-</code></pre>
+</pre>
 <h3 id="passports-keys"><a class="header" href="#passports-keys">Passport's keys</a></h3>
 <p>the passport's keys are all the keys that have been registered
 in the passport chain and that have not been repudiated yet.</p>
