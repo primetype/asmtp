@@ -98,7 +98,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="keynesis.html" class="active"><strong aria-hidden="true">2.</strong> Keynesis</a></li><li class="chapter-item expanded "><a href="noise.html"><strong aria-hidden="true">3.</strong> Noise</a></li><li class="chapter-item expanded "><a href="poldercast.html"><strong aria-hidden="true">4.</strong> Poldercast</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="keynesis.html" class="active"><strong aria-hidden="true">2.</strong> Keynesis</a></li><li class="chapter-item expanded "><a href="noise.html"><strong aria-hidden="true">3.</strong> Noise</a></li><li class="chapter-item expanded "><a href="poldercast.html"><strong aria-hidden="true">4.</strong> Poldercast</a></li><li class="chapter-item expanded "><a href="asmtp.html"><strong aria-hidden="true">5.</strong> ASMTP</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -222,8 +222,21 @@ a shared secret. <strong>Bob</strong> will combine his <code>private key</code> 
 can represent a device of the user for example. Though it is not limited
 to that only (one can add paper keys or HSM keys for example).</p>
 <p>We use different keys in order to avoid asking the user to use a unique
-passphrase across different devices. This is rather insecure and incentive
-users to use rather weak passwords.</p>
+passphrase across different devices. That a key is the one of a mobile
+a desktop or a paper key is not known of the passport itself (though
+it is possible to add an alias to the key to simplify the key management).</p>
+<p>For example, a passport may be seen as a group of devices:</p>
+<pre class="mermaid">graph BT
+    subgraph Alice[Alice's Passport]
+        a1[fa:fa-desktop desktop]
+        a2[fa:fa-mobile mobile]
+        a3[fa:fa-sticky-note paper key]
+    end
+</pre>
+<p>Here Alice has registered the application on her desktop, on her mobile and
+has also created a paper key.</p>
+<p>If Alice registers to a webservice on her desktop. She
+can automatically access the webservice with her mobile.</p>
 <h3 id="passports-chain"><a class="header" href="#passports-chain">Passport's chain</a></h3>
 <p>The passport is composed of a series of events: declaration of a new key,
 repudiation of a key and more. This is a blockchain. Every blocks contains
@@ -282,6 +295,32 @@ for key in passport.keys() {
 }
 <span class="boring">}
 </span></code></pre></pre>
+<h3 id="extending-the-passport-with-more-metadata"><a class="header" href="#extending-the-passport-with-more-metadata">Extending the passport with more metadata</a></h3>
+<p>The <code>Passport</code> is a blockchain. So far we have defined only 3 types of <code>Event</code>s
+supported by the <code>Passport</code>. Though it is perfectly conceivable to extend the
+passport to add embed more data.</p>
+<p>For example one could attach the digital signature of a document.</p>
+<pre class="mermaid">graph LR
+    subgraph Alice[Alice's Passport]
+        a1[fa:fa-desktop desktop]
+        a2[fa:fa-mobile mobile]
+        a3[fa:fa-sticky-note-o paper key]
+        a4[fa:fa-code signature]
+    end
+
+    document[fa:fa-id-card-o ID Card]
+
+    a1 -- verify --&gt; a4
+    a4 -- prove --&gt; document
+</pre>
+<p>If Alice had register an <code>ID Card</code> with her desktop's key. She then only need
+to prove she owns any <em>keys</em> registered in her passport to prove the owns the
+<code>Passport</code> which then proves that she is associated to the <code>ID Card</code>.</p>
+<p>In this case we are not storing the <code>ID Card</code> document in the passport itself.
+This would be to prevent proving our identity to everyone. Instead we want to
+only show the <code>ID Card</code> to our convenience.</p>
+<p>This is only an example of what could be added in the future. One could add
+the signature of a diploma.</p>
 
                     </main>
 
