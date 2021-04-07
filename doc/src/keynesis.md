@@ -68,8 +68,26 @@ can represent a device of the user for example. Though it is not limited
 to that only (one can add paper keys or HSM keys for example).
 
 We use different keys in order to avoid asking the user to use a unique
-passphrase across different devices. This is rather insecure and incentive
-users to use rather weak passwords.
+passphrase across different devices. That a key is the one of a mobile
+a desktop or a paper key is not known of the passport itself (though
+it is possible to add an alias to the key to simplify the key management).
+
+For example, a passport may be seen as a group of devices:
+
+```mermaid
+graph BT
+    subgraph Alice[Alice's Passport]
+        a1[fa:fa-desktop desktop]
+        a2[fa:fa-mobile mobile]
+        a3[fa:fa-sticky-note paper key]
+    end
+```
+
+Here Alice has registered the application on her desktop, on her mobile and
+has also created a paper key.
+
+If Alice registers to a webservice on her desktop. She
+can automatically access the webservice with her mobile.
 
 ### Passport's chain
 
@@ -137,5 +155,39 @@ for key in passport.keys() {
     let encrypted = noise::N::send(ephemeral, psk, key, shared_secret_key);
 }
 ```
+
+### Extending the passport with more metadata
+
+The `Passport` is a blockchain. So far we have defined only 3 types of `Event`s
+supported by the `Passport`. Though it is perfectly conceivable to extend the
+passport to add embed more data.
+
+For example one could attach the digital signature of a document.
+
+```mermaid
+graph LR
+    subgraph Alice[Alice's Passport]
+        a1[fa:fa-desktop desktop]
+        a2[fa:fa-mobile mobile]
+        a3[fa:fa-sticky-note-o paper key]
+        a4[fa:fa-code signature]
+    end
+
+    document[fa:fa-id-card-o ID Card]
+
+    a1 -- verify --> a4
+    a4 -- prove --> document
+```
+
+If Alice had register an `ID Card` with her desktop's key. She then only need
+to prove she owns any _keys_ registered in her passport to prove the owns the
+`Passport` which then proves that she is associated to the `ID Card`.
+
+In this case we are not storing the `ID Card` document in the passport itself.
+This would be to prevent proving our identity to everyone. Instead we want to
+only show the `ID Card` to our convenience.
+
+This is only an example of what could be added in the future. One could add
+the signature of a diploma.
 
 [`Npsk0`]: ./noise.md#pattern-npsk0
