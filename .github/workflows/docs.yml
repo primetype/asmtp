@@ -3,8 +3,8 @@ on:
   push:
     branches:
       - master
-#    paths:
-#      - doc/**
+    paths:
+      - doc/**
 
 jobs:
   build-and-deploy:
