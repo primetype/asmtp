@@ -1,6 +1,7 @@
 mod focus;
 mod pages;
 pub(self) mod util;
+pub(self) mod widget;
 
 pub use self::focus::Focus;
 use self::pages::Pages;

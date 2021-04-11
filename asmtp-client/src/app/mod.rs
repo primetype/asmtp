@@ -164,7 +164,7 @@ impl App {
         })
     }
 
-    pub async fn create_new_key(&mut self, alias: &str) -> Result<()> {
+    pub async fn create_new_key(&mut self, alias: &str) -> Result<PublicKey> {
         let seed = Seed::generate(&mut self.rng);
         let index = self.keys.add_key(KeyFile::Seed { seed })?;
         let key = self
@@ -207,7 +207,7 @@ impl App {
                 )
             })?;
 
-        Ok(())
+        Ok(public_key)
     }
 
     pub async fn set_current_key(&mut self, index: usize) -> Result<&Key> {

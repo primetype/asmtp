@@ -1,33 +1,17 @@
 use crate::{
     app::App,
     event,
-    ui::{util, Focus},
+    ui::{util, widget, Focus},
 };
 use anyhow::{Context as _, Result};
-use keynesis::{hash::Blake2b, key::ed25519::PublicKey, passport::block::Hash, Seed};
+use keynesis::{key::ed25519::PublicKey, passport::block::Hash};
 use tui::{
     backend::Backend,
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
-    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
+    widgets::{Block, Borders, List, ListItem, ListState},
     Frame,
 };
-
-enum NewPassportState {
-    CreateOrBind,
-    CreateNewPassphrase {
-        passphrase: String,
-    },
-    CreateConfirmPassphrase {
-        passphrase: String,
-        confirmation: String,
-        matches: Option<bool>,
-    },
-    Create {
-        passphrase: String,
-    },
-}
 
 pub struct Passports {
     key: Option<Option<PublicKey>>,
@@ -36,7 +20,7 @@ pub struct Passports {
     selected: usize,
     cursor: usize,
 
-    new_passport: Option<NewPassportState>,
+    new_passport: Option<widget::NewPassport>,
 }
 
 impl Passports {
@@ -66,108 +50,44 @@ impl Passports {
     }
 
     pub fn input(&mut self, focus: &mut Focus, key: event::Key) {
-        match key {
-            event::Key::Enter => match self.new_passport.take() {
-                None => {
+        if self.has_focus(focus) {
+            if self.new_passport.is_some() {
+                self.new_passport = None;
+            }
+
+            match key {
+                event::Key::Enter => {
                     self.selected = self.cursor;
                 }
-                Some(NewPassportState::CreateOrBind) => {
-                    self.new_passport = Some(NewPassportState::CreateNewPassphrase {
-                        passphrase: String::new(),
-                    });
-                }
-                Some(NewPassportState::CreateNewPassphrase { passphrase }) => {
-                    self.new_passport = Some(NewPassportState::CreateConfirmPassphrase {
-                        passphrase,
-                        confirmation: String::new(),
-                        matches: None,
-                    });
-                }
-                Some(NewPassportState::CreateConfirmPassphrase {
-                    passphrase,
-                    confirmation,
-                    ..
-                }) if passphrase == confirmation => {
-                    self.new_passport = Some(NewPassportState::Create { passphrase });
-                }
-                Some(NewPassportState::CreateConfirmPassphrase {
-                    passphrase,
-                    confirmation,
-                    ..
-                }) => {
-                    self.new_passport = Some(NewPassportState::CreateConfirmPassphrase {
-                        passphrase,
-                        confirmation,
-                        matches: Some(false),
-                    });
-                }
-                Some(NewPassportState::Create { .. }) => {
-                    focus.pop();
-                }
-            },
-            event::Key::Esc => match self.new_passport.take() {
-                None => {
+                event::Key::Esc => {
                     self.cursor = self.selected;
                     focus.pop();
                 }
-                Some(NewPassportState::CreateOrBind) => {
-                    self.new_passport = None;
-                    focus.pop();
+                event::Key::Up => {
+                    self.cursor = if let Some(a) = self.cursor.checked_sub(1) {
+                        a
+                    } else {
+                        self.passports.len().wrapping_sub(1)
+                    };
                 }
-                Some(NewPassportState::CreateNewPassphrase { .. }) => {
-                    self.new_passport = Some(NewPassportState::CreateOrBind);
+                event::Key::Down => {
+                    self.cursor = self
+                        .cursor
+                        .wrapping_add(1)
+                        .wrapping_rem(self.passports.len());
                 }
-                Some(NewPassportState::CreateConfirmPassphrase { passphrase, .. }) => {
-                    self.new_passport = Some(NewPassportState::CreateNewPassphrase { passphrase });
+                event::Key::Char('+') if self.new_passport.is_none() => {
+                    self.new_passport = Some(widget::NewPassport::new());
+                    focus.push(widget::NewPassport::title());
                 }
-                Some(NewPassportState::Create { passphrase }) => {
-                    self.new_passport = Some(NewPassportState::CreateConfirmPassphrase {
-                        passphrase,
-                        confirmation: String::new(),
-                        matches: None,
-                    });
-                }
-            },
-            event::Key::Up => {
-                self.cursor = if let Some(a) = self.cursor.checked_sub(1) {
-                    a
-                } else {
-                    self.passports.len().wrapping_sub(1)
-                };
+                _ => {}
             }
-            event::Key::Down => {
-                self.cursor = self
-                    .cursor
-                    .wrapping_add(1)
-                    .wrapping_rem(self.passports.len());
+        } else if let Some(new_passport) = self.new_passport.as_mut() {
+            if new_passport.has_focus(focus) && new_passport.input(focus, key) {
+                self.new_passport = None;
             }
-            event::Key::Char('+') if self.new_passport.is_none() => {
-                self.new_passport = Some(NewPassportState::CreateOrBind);
-                focus.push("New Passport");
-            }
-            event::Key::Backspace => match self.new_passport.as_mut() {
-                None => {}
-                Some(NewPassportState::CreateOrBind) => {}
-                Some(NewPassportState::CreateNewPassphrase { passphrase }) => {
-                    passphrase.pop();
-                }
-                Some(NewPassportState::CreateConfirmPassphrase { confirmation, .. }) => {
-                    confirmation.pop();
-                }
-                Some(NewPassportState::Create { .. }) => {}
-            },
-            event::Key::Char(c) => match self.new_passport.as_mut() {
-                None => {}
-                Some(NewPassportState::CreateOrBind) => {}
-                Some(NewPassportState::CreateNewPassphrase { passphrase }) => {
-                    passphrase.push(c);
-                }
-                Some(NewPassportState::CreateConfirmPassphrase { confirmation, .. }) => {
-                    confirmation.push(c);
-                }
-                Some(NewPassportState::Create { .. }) => {}
-            },
-            _ => {}
+        } else {
+            // error !
         }
     }
 
@@ -178,21 +98,9 @@ impl Passports {
         }
         self.key = new_key;
 
-        match self.new_passport.take() {
-            Some(NewPassportState::Create { passphrase }) => {
-                let seed = {
-                    let mut key = [0; 32];
-                    Blake2b::blake2b(&mut key, passphrase.as_bytes(), &[]);
-                    Seed::derive_from_key(&key, &[])
-                };
-                app.create_new_passport(seed)
-                    .await
-                    .context("Failed to create new passport")?;
-            }
-            state => {
-                self.new_passport = state;
-            }
-        };
+        if let Some(new_passport) = self.new_passport.as_mut() {
+            new_passport.update(app).await?;
+        }
 
         self.reset_list(app);
 
@@ -214,7 +122,8 @@ impl Passports {
         }
 
         if self.passports.is_empty() && self.new_passport.is_none() {
-            self.new_passport = Some(NewPassportState::CreateOrBind);
+            // force creating a passport
+            self.new_passport = Some(widget::NewPassport::new());
         };
     }
 
@@ -263,163 +172,9 @@ impl Passports {
         f.render_stateful_widget(list, layer[0], &mut selected);
     }
 
-    fn draw_popup_area<B>(&self, f: &mut Frame<B>, parent_layer: Rect) -> Rect
-    where
-        B: Backend,
-    {
+    fn popup_area(&self, parent_layer: Rect) -> Rect {
         // create an area within the parent layer
-        let area = util::centered_rect(60, 60, parent_layer);
-        let block = Block::default().title("New passport").borders(Borders::ALL);
-
-        let inner = block.inner(area);
-
-        // clear the area under the popup
-        f.render_widget(Clear, area);
-        f.render_widget(block, area);
-
-        inner
-    }
-
-    fn draw_popup_computing<B>(&self, f: &mut Frame<B>, parent_layer: Rect)
-    where
-        B: Backend,
-    {
-        let layer = parent_layer;
-
-        let message = Span::raw("Creating new passport... please wait...");
-        let message = Paragraph::new(message)
-            .block(Block::default())
-            .alignment(Alignment::Left)
-            .wrap(Wrap { trim: false });
-
-        f.render_widget(message, layer);
-    }
-
-    fn draw_popup_create_or_bind<B>(&self, f: &mut Frame<B>, parent_layer: Rect)
-    where
-        B: Backend,
-    {
-        let layer = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Min(3),
-                Constraint::Min(1),
-                Constraint::Length(3),
-            ])
-            .split(parent_layer);
-        let message_layer = layer[0];
-        let action_layer = layer[2];
-
-        let message = Span::raw("It is not currently possible to bind a new key to a passport. You can create a passport though. The new feature will be added soon!");
-        let message = Paragraph::new(message)
-            .block(Block::default())
-            .alignment(Alignment::Left)
-            .wrap(Wrap { trim: false });
-
-        let action = Span::styled(
-            "Press <Enter> for next step",
-            Style::default()
-                .bg(Color::LightYellow)
-                .fg(Color::Black)
-                .add_modifier(Modifier::BOLD | Modifier::SLOW_BLINK),
-        );
-        let action = Paragraph::new(action)
-            .block(Block::default().borders(Borders::ALL))
-            .alignment(Alignment::Center)
-            .wrap(Wrap { trim: false });
-
-        f.render_widget(message, message_layer);
-        f.render_widget(action, action_layer);
-    }
-
-    fn draw_popup_new_passphrase<B>(
-        &self,
-        f: &mut Frame<B>,
-        parent_layer: Rect,
-        comment: impl AsRef<str>,
-        passphrase: &str,
-        confirming: bool,
-        already_tried: bool,
-    ) where
-        B: Backend,
-    {
-        let layer = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Min(3),
-                Constraint::Min(1),
-                Constraint::Length(3),
-                Constraint::Min(1),
-                Constraint::Length(3),
-            ])
-            .split(parent_layer);
-        let message_layer = layer[0];
-        let input_layer = layer[2];
-        let action_layer = layer[4];
-
-        let message = Span::raw(comment.as_ref());
-        let message = Paragraph::new(message)
-            .block(Block::default())
-            .alignment(Alignment::Left)
-            .wrap(Wrap { trim: false });
-
-        let input = if !confirming {
-            Spans::from(vec![
-                Span::raw("Enter new passphrase: "),
-                Span::styled(passphrase, Style::default().add_modifier(Modifier::BOLD)),
-                Span::styled(
-                    "█",
-                    Style::default()
-                        .fg(Color::LightYellow)
-                        .add_modifier(Modifier::SLOW_BLINK),
-                ),
-            ])
-        } else {
-            Spans::from(vec![
-                Span::raw("Confirm new passphrase name: "),
-                Span::styled(passphrase, Style::default().add_modifier(Modifier::BOLD)),
-                Span::styled(
-                    "█ ",
-                    Style::default()
-                        .fg(Color::LightYellow)
-                        .add_modifier(Modifier::SLOW_BLINK),
-                ),
-                if already_tried {
-                    Span::styled(
-                        "Does not matches",
-                        Style::default()
-                            .fg(Color::LightRed)
-                            .add_modifier(Modifier::ITALIC),
-                    )
-                } else {
-                    Span::raw("")
-                },
-            ])
-        };
-        let input = Paragraph::new(input)
-            .block(Block::default())
-            .alignment(Alignment::Left)
-            .wrap(Wrap { trim: false });
-
-        let action = if confirming {
-            Span::raw("Press <Enter> when ready")
-        } else {
-            Span::styled(
-                "Press <Enter> to confirm",
-                Style::default()
-                    .bg(Color::LightYellow)
-                    .fg(Color::Black)
-                    .add_modifier(Modifier::BOLD | Modifier::SLOW_BLINK),
-            )
-        };
-        let action = Paragraph::new(action)
-            .block(Block::default().borders(Borders::ALL))
-            .alignment(Alignment::Center)
-            .wrap(Wrap { trim: false });
-
-        f.render_widget(message, message_layer);
-        f.render_widget(input, input_layer);
-        f.render_widget(action, action_layer);
+        util::centered_rect(60, 60, parent_layer)
     }
 
     pub fn draw<B>(&self, focus: &Focus, f: &mut Frame<B>, parent_layer: Rect)
@@ -428,44 +183,9 @@ impl Passports {
     {
         self.draw_list(focus, f, parent_layer);
 
-        match &self.new_passport {
-            None => {}
-            Some(NewPassportState::Create { .. }) => {
-                let popup_area = self.draw_popup_area(f, parent_layer);
-                self.draw_popup_computing(f, popup_area);
-            }
-            Some(NewPassportState::CreateOrBind) => {
-                let popup_area = self.draw_popup_area(f, parent_layer);
-                self.draw_popup_create_or_bind(f, popup_area);
-            }
-            Some(NewPassportState::CreateNewPassphrase { passphrase }) => {
-                let popup_area = self.draw_popup_area(f, parent_layer);
-                let comment = "Please enter the shared key passphrase";
-                self.draw_popup_new_passphrase(
-                    f,
-                    popup_area,
-                    comment,
-                    passphrase.as_str(),
-                    false,
-                    false,
-                );
-            }
-            Some(NewPassportState::CreateConfirmPassphrase {
-                confirmation,
-                matches,
-                ..
-            }) => {
-                let popup_area = self.draw_popup_area(f, parent_layer);
-                let comment = "Please confirm the shared key passphrase";
-                self.draw_popup_new_passphrase(
-                    f,
-                    popup_area,
-                    comment,
-                    confirmation.as_str(),
-                    true,
-                    matches.is_some(),
-                );
-            }
+        if let Some(new_passport) = self.new_passport.as_ref() {
+            let popup_area = self.popup_area(parent_layer);
+            new_passport.draw(focus, f, popup_area);
         }
     }
 }
