@@ -135,7 +135,7 @@ impl Network {
         // load the subscriptions first so every layers of the poldercast
         // topology can get the necessary preset data regarding how the
         // subscriptions should look like before adding peers
-        let initial_subscriptions = storage.topic_subscriptions()?;
+        let initial_subscriptions = storage.topic_subscriptions().await?;
         topology.subscriptions(initial_subscriptions, Vec::new());
 
         // add the initial gossips from the configuration file
@@ -324,7 +324,8 @@ impl Runner {
 
             // propagate the topic message to other services
             self.storage
-                .handle_incoming_message(topic, Bytes::from(content.to_vec()))?;
+                .handle_incoming_message(topic, Bytes::from(content.to_vec()))
+                .await?;
 
             let view = self
                 .topology
@@ -332,16 +333,15 @@ impl Runner {
 
             self.connections.send_all(view, message).await;
         } else if let Some((topic, time)) = message.query_topic_messages_checked() {
-            if let Some(messages) = self.storage.messages(topic, time)? {
-                // todo: here we are blocking the current task by
-                // processing all the messages. This is a bit non
-                // productive, instead we should do that in a separate
-                // threads/task : `task::spawn` and forget with a clone
-                for (_, message) in messages {
-                    self.connections
-                        .send_to_peer(&peer, Message::new_topic(topic, message.as_ref()))
-                        .await
-                }
+            let messages = self.storage.messages(topic, time).await?;
+            // todo: here we are blocking the current task by
+            // processing all the messages. This is a bit non
+            // productive, instead we should do that in a separate
+            // threads/task : `task::spawn` and forget with a clone
+            for message in messages {
+                self.connections
+                    .send_to_peer(&peer, Message::new_topic(topic, &message))
+                    .await
             }
         }
         // ********************************************************************
@@ -353,10 +353,13 @@ impl Runner {
             let blocks = self
                 .storage
                 .handle_get_passport(id)
-                .with_context(|| format!("Failed to find passport {}", id))?;
-            self.connections
-                .send_to_peer(&peer, Message::new_put_passport(id, blocks.as_slice()))
                 .await
+                .with_context(|| format!("Failed to find passport {}", id))?;
+            if let Some(blocks) = blocks {
+                self.connections
+                    .send_to_peer(&peer, Message::new_put_passport(id, blocks.as_slice()))
+                    .await
+            }
         } else if let Some((id, slice)) = message.put_passport_checked() {
             // TODO: we need to check that the passport is being *PUT* by a
             // approved peer. or that this is a request passport from a previously
@@ -366,13 +369,14 @@ impl Runner {
             if let Err(error) = self
                 .storage
                 .handle_put_passport(peer, id, slice.to_blocks())
+                .await
             {
                 tracing::warn!(peer = %peer, passport = %id, reason = %error, "cannot accept new passport")
             }
         } else if let Some(topic) = message.register_topic_checked() {
-            self.storage.put_topic(peer, topic)?
+            self.storage.put_topic(peer, topic).await?
         } else if let Some(topic) = message.deregister_topic_checked() {
-            self.storage.remove_topic(peer, topic)?
+            self.storage.remove_topic(peer, topic).await?
         }
         // ********************************************************************
         //

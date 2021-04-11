@@ -158,9 +158,9 @@ impl Default for Gossip {
     }
 }
 
-impl Into<String> for KnownGossip {
-    fn into(self) -> String {
-        self.to_string()
+impl From<KnownGossip> for String {
+    fn from(known_gossip: KnownGossip) -> Self {
+        known_gossip.to_string()
     }
 }
 

@@ -17,7 +17,7 @@ pub struct PassportImporter<B, P> {
 
 impl PassportImporter<Block, Passport> {
     pub fn new_owned(block: Block) -> Result<Self> {
-        let current = Passport::new(block)?;
+        let current = Passport::new(block.as_slice())?;
 
         Ok(Self {
             current,
@@ -53,7 +53,7 @@ impl PassportImporter<Block, Passport> {
             self.put(block)?;
         } else {
             let id = block.header().hash();
-            self.current.push(block)?;
+            self.current.push(block.as_slice())?;
             self.added.insert(id);
 
             let mut resolved = VecDeque::new();
@@ -62,7 +62,7 @@ impl PassportImporter<Block, Passport> {
             while let Some(id) = resolved.pop_front() {
                 for children in self.take(&id) {
                     let id = children.header().hash();
-                    self.current.push(children)?;
+                    self.current.push(children.as_slice())?;
                     self.added.insert(id);
                     resolved.push_back(id);
                 }

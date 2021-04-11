@@ -71,17 +71,5 @@ storage:
   #
   path: "/path/to/persistent/storage.db"
 
-  # the operating mode of the storage (low-space or high-throughput)
-  mode: low-space
-
-  # print the profile on drop of the config
-  profile_on_drop: false
-
-  # add a compression factor of the persistent storage (with 'zstd')
-  #
-  # default value (nothing) means no compression
-  # otherwise set a compression level between 1 and 22 (values >= 20 are ultra)
-  compression_factor: ~
-
   # maximum number of passports to keep in the cache
   passport_cache_size: 256

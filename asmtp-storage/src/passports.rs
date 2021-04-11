@@ -133,6 +133,21 @@ impl Passports {
         Ok(blocks)
     }
 
+    pub fn search_blocks(&self, id: impl AsRef<[u8]>) -> Result<Option<PassportBlocks<Vec<u8>>>> {
+        let id = self
+            .ids
+            .get(id)
+            .context("Failed to query persistent storage for passport's ID")?;
+        if let Some(key) = id {
+            let id = Hash::try_from(key.as_ref()).context("Invalid Passport ID")?;
+            let blocks = self.get_blocks(id)?;
+
+            Ok(Some(blocks))
+        } else {
+            Ok(None)
+        }
+    }
+
     pub fn get(&self, id: impl AsRef<[u8]>) -> Result<Option<LightPassport>> {
         let id = self
             .ids

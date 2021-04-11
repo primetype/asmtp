@@ -49,7 +49,9 @@ async fn main_run() -> anyhow::Result<()> {
     config.secret.password = args.password;
 
     let secret = Secret::new(config.secret).context("Cannot start the secret Key Manager")?;
-    let storage = Storage::new(config.storage, config.users).context("Cannot load storage")?;
+    let storage = Storage::new(config.storage, config.users)
+        .await
+        .context("Cannot load storage")?;
     let network = Network::new(secret.clone(), storage.clone(), config.network)
         .await
         .context("Cannot load the network task")?;

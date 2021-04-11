@@ -1,8 +1,10 @@
 use crate::codec::encryption::MAX_FRAME_LENGTH;
 use anyhow::{anyhow, ensure, Context as _, Result};
-use asmtp_lib::PassportBlocksSlice;
 use bytes::{BufMut as _, Bytes, BytesMut};
-use keynesis::passport::block::{Hash, Time};
+use keynesis::passport::{
+    block::{Hash, Time},
+    PassportBlocksSlice,
+};
 use poldercast::{GossipSlice, Topic};
 use std::convert::{TryFrom, TryInto};
 
@@ -53,7 +55,7 @@ impl MessageType {
 
 impl Message {
     const MAX_SIZE: usize = MAX_FRAME_LENGTH - MessageType::SIZE;
-    const MIN_SIZE: usize = MessageType::SIZE + Topic::SIZE;
+    const MIN_SIZE: usize = MessageType::SIZE + Hash::SIZE;
 
     /// create a new message from the given gossip
     pub fn new_gossip(gossip: GossipSlice<'_>) -> Self {
