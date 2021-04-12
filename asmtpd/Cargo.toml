@@ -44,4 +44,4 @@ structopt = "0.3.21"
 serde_yaml = "0.8"
 
 # asmtpd-cli only
-dialoguer = "0.7.1"
+dialoguer = "0.8.0"
